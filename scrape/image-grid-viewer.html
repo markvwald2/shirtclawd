@@ -39,10 +39,11 @@
       font-size: 0.95rem;
     }
 
-    .themes {
+    .toolbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      align-items: center;
+      gap: 12px;
       margin-bottom: 16px;
       padding: 10px 12px;
       background: var(--surface);
@@ -50,14 +51,64 @@
       border-radius: 10px;
     }
 
-    .theme-toggle {
+    .filter {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.9rem;
+      min-width: 180px;
+    }
+
+    .filter input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .filter select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .toolbar button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+    }
+
+    .toggle-row {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       font-size: 0.9rem;
       color: var(--text);
-      user-select: none;
-      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .bulk {
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 12px;
     }
 
     .grid {
@@ -67,11 +118,32 @@
     }
 
     .card {
+      position: relative;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    .card.selected {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    }
+
+    .select-wrap {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px 5px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .thumb {
@@ -83,9 +155,35 @@
     }
 
     .name {
-      padding: 10px 12px 12px;
+      padding: 10px 12px 6px;
       font-size: 0.9rem;
       line-height: 1.3;
+      font-weight: 600;
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 0 12px 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .field input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
     }
 
     .error { color: #b91c1c; font-weight: 600; }
@@ -95,63 +193,83 @@
   <main class="wrap">
     <h1>output_image_urls.json Viewer</h1>
     <div id="status" class="status">Loading...</div>
-    <div id="theme-controls" class="themes"></div>
+    <div class="toolbar">
+      <label class="filter">
+        <span>Theme picker</span>
+        <select id="theme-picker">
+          <option value="">All themes</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Sub-theme picker</span>
+        <select id="sub-theme-picker">
+          <option value="">All sub-themes</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Filter theme</span>
+        <input id="theme-filter" type="text" placeholder="e.g. geography" />
+      </label>
+      <label class="filter">
+        <span>Filter tag</span>
+        <input id="tag-filter" type="text" placeholder="e.g. movies" />
+      </label>
+      <label class="toggle-row">
+        <input id="unthemed-only" type="checkbox" />
+        <span>Un-themed only</span>
+      </label>
+      <button id="clear-filters" type="button">Clear Filters</button>
+      <button id="export-json" type="button">Export JSON</button>
+    </div>
+    <div class="bulk">
+      <label class="filter">
+        <span>Bulk theme</span>
+        <input id="bulk-theme" type="text" placeholder="e.g. geography" />
+      </label>
+      <label class="filter">
+        <span>Bulk sub-theme</span>
+        <input id="bulk-sub-theme" type="text" placeholder="e.g. State names" />
+      </label>
+      <label class="filter">
+        <span>Bulk tags (comma-separated)</span>
+        <input id="bulk-tags" type="text" placeholder="e.g. geography, state-names" />
+      </label>
+      <button id="apply-selected" type="button">Apply To Selected</button>
+      <button id="select-visible" type="button">Select Visible</button>
+      <button id="clear-selection" type="button">Clear Selection</button>
+    </div>
     <section id="grid" class="grid"></section>
   </main>
 
   <script>
     const statusEl = document.getElementById('status');
-    const themeControlsEl = document.getElementById('theme-controls');
     const gridEl = document.getElementById('grid');
-    const THEME_DEFS = [
-      {
-        id: 'us-states',
-        label: 'US States',
-        names: [
-          'Alabama', 'Alaska', 'Arizona', 'arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
-          'Florida', 'Georgia', 'Hawaii', 'idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
-          'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Minnesota', 'Mississippi', 'Missouri',
-          'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina',
-          'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
-          'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
-          'Wisconsin', 'Wyoming'
-        ]
-      },
-      {
-        id: 'us-state-capitals',
-        label: 'US State Capitals',
-        names: [
-          'Albany', 'Annapolis', 'Atlanta', 'Augusta', 'Austin', 'Baton Rouge', 'Bismarck', 'Boise', 'Boston',
-          'Carson City', 'Charleston', 'Cheyenne', 'Columbia', 'Columbus', 'Concord', 'denver', 'Des Moines',
-          'Dover', 'Frankfort', 'Harrisburg', 'Hartford', 'Helena', 'Honolulu', 'Indianapolis', 'Jackson',
-          'Jefferson City', 'Juneau', 'Lansing', 'Little Rock', 'Madison', 'Montgomery', 'Montpelier',
-          'Nashville', 'Oklahoma City', 'olympia', 'Phoenix', 'Pierre', 'Providence', 'Raleigh', 'Richmond',
-          'Sacramento', 'Salem', 'Salt Lake City', 'Santa Fe', 'Springfield', 'St Paul', 'Tallahassee',
-          'Topeka', 'Trenton'
-        ]
-      },
-      {
-        id: 'cta',
-        label: 'Chicago Transit (CTA)',
-        names: [
-          'Addison Blue Line', 'Addison Brown Line', 'Addison CTA', 'Armitage Brown Line', 'Belmont',
-          'Belmont Blue Line', 'Belmont Brown Line', 'California Blue Line', 'Chicago brown', 'Chicago CTA',
-          'Clark/Division CTA Stop', 'Clark/Lake Blue Line', 'Cumberland Blue Line', 'Damen Blue Line',
-          'Damen CTA Brown Line', 'Diversey CTA Brown Line', 'Fullerton CTA', 'Fullerton CTA Brown Line',
-          'Harlem Blue Line', 'Irving Park Blue Line', 'Irving Park CTA Brown Line', 'Logan Square Blue Line',
-          'Montrose Blue Line', 'Montrose CTA Brown Line', 'North Clybourn', 'Sedgwick CTA Brown Line',
-          'Southport CTA Brown Line', 'Sox-35th Red Line', 'Wellington CTA Brown Line', 'Western Blue Line',
-          'Western CTA Brown Line'
-        ]
-      }
-    ];
-    const THEME_SETS = new Map();
+    const themePickerEl = document.getElementById('theme-picker');
+    const subThemePickerEl = document.getElementById('sub-theme-picker');
+    const themeFilterEl = document.getElementById('theme-filter');
+    const tagFilterEl = document.getElementById('tag-filter');
+    const unthemedOnlyEl = document.getElementById('unthemed-only');
+    const clearFiltersEl = document.getElementById('clear-filters');
+    const exportJsonEl = document.getElementById('export-json');
+    const bulkThemeEl = document.getElementById('bulk-theme');
+    const bulkSubThemeEl = document.getElementById('bulk-sub-theme');
+    const bulkTagsEl = document.getElementById('bulk-tags');
+    const applySelectedEl = document.getElementById('apply-selected');
+    const selectVisibleEl = document.getElementById('select-visible');
+    const clearSelectionEl = document.getElementById('clear-selection');
     const entries = [];
-    let loadedCount = 0;
+    const dataset = [];
 
     function makeCard(item) {
       const card = document.createElement('article');
       card.className = 'card';
+
+      const selectWrap = document.createElement('label');
+      selectWrap.className = 'select-wrap';
+      const selectInput = document.createElement('input');
+      selectInput.type = 'checkbox';
+      selectWrap.appendChild(selectInput);
+      selectWrap.appendChild(document.createTextNode('Select'));
 
       const img = document.createElement('img');
       img.className = 'thumb';
@@ -163,96 +281,250 @@
       name.className = 'name';
       name.textContent = item.name || '(unnamed)';
 
+      const editor = document.createElement('div');
+      editor.className = 'editor';
+
+      const themeField = document.createElement('label');
+      themeField.className = 'field';
+      themeField.innerHTML = '<span>Theme</span>';
+      const themeInput = document.createElement('input');
+      themeInput.type = 'text';
+      themeInput.value = item.theme || '';
+      themeField.appendChild(themeInput);
+
+      const subThemeField = document.createElement('label');
+      subThemeField.className = 'field';
+      subThemeField.innerHTML = '<span>Sub-theme</span>';
+      const subThemeInput = document.createElement('input');
+      subThemeInput.type = 'text';
+      subThemeInput.value = item.sub_theme || '';
+      subThemeField.appendChild(subThemeInput);
+
+      const tagsField = document.createElement('label');
+      tagsField.className = 'field';
+      tagsField.innerHTML = '<span>Tags (comma-separated)</span>';
+      const tagsInput = document.createElement('input');
+      tagsInput.type = 'text';
+      tagsInput.value = Array.isArray(item.tags) ? item.tags.join(', ') : '';
+      tagsField.appendChild(tagsInput);
+
+      editor.appendChild(themeField);
+      editor.appendChild(subThemeField);
+      editor.appendChild(tagsField);
+
+      card.appendChild(selectWrap);
       card.appendChild(img);
       card.appendChild(name);
-      return card;
+      card.appendChild(editor);
+      return { card, themeInput, subThemeInput, tagsInput, selectInput };
     }
 
-    function normalize(value) {
-      return String(value || '')
-        .toLowerCase()
-        .replace(/&amp;/g, ' and ')
-        .replace(/&/g, ' and ')
-        .replace(/[’']/g, '')
-        .replace(/\+/g, ' plus ')
-        .replace(/[^a-z0-9]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function buildThemeSets() {
-      THEME_DEFS.forEach((theme) => {
-        THEME_SETS.set(theme.id, new Set(theme.names.map(normalize)));
-      });
-    }
-
-    function renderThemeControls() {
-      themeControlsEl.innerHTML = '';
-      THEME_DEFS.forEach((theme) => {
-        const label = document.createElement('label');
-        label.className = 'theme-toggle';
-
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = true;
-        input.dataset.themeId = theme.id;
-        input.addEventListener('change', applyFilters);
-
-        const text = document.createElement('span');
-        text.textContent = theme.label;
-
-        label.appendChild(input);
-        label.appendChild(text);
-        themeControlsEl.appendChild(label);
-      });
+    function updateCardSelectionVisual(entry) {
+      entry.card.classList.toggle('selected', entry.selectInput.checked);
     }
 
     function applyFilters() {
-      const enabled = new Set(
-        Array.from(themeControlsEl.querySelectorAll('input[data-theme-id]:checked')).map((el) => el.dataset.themeId)
-      );
+      const selectedTheme = themePickerEl.value.trim().toLowerCase();
+      const selectedSubTheme = subThemePickerEl.value.trim().toLowerCase();
+      const themeNeedle = themeFilterEl.value.trim().toLowerCase();
+      const tagNeedle = tagFilterEl.value.trim().toLowerCase();
+      const unthemedOnly = unthemedOnlyEl.checked;
       let visibleCount = 0;
+      let selectedCount = 0;
 
       entries.forEach((entry) => {
-        const show = entry.themes.length === 0 || entry.themes.some((t) => enabled.has(t));
+        const themeVal = String(entry.item.theme || '').toLowerCase();
+        const subThemeVal = String(entry.item.sub_theme || '').toLowerCase();
+        const tagsVal = Array.isArray(entry.item.tags) ? entry.item.tags.map((t) => String(t).toLowerCase()) : [];
+        const matchPicker = !selectedTheme || themeVal === selectedTheme;
+        const matchSubThemePicker = !selectedSubTheme || subThemeVal === selectedSubTheme;
+        const matchTheme = !themeNeedle || themeVal.includes(themeNeedle);
+        const matchTag = !tagNeedle || tagsVal.some((t) => t.includes(tagNeedle));
+        const matchUnthemed = !unthemedOnly || !entry.item.theme || !entry.item.theme.trim();
+        const show = matchPicker && matchSubThemePicker && matchTheme && matchTag && matchUnthemed;
         entry.card.style.display = show ? '' : 'none';
         if (show) visibleCount += 1;
+        if (entry.selectInput.checked) selectedCount += 1;
       });
 
-      statusEl.textContent = `Loaded ${loadedCount} images. Showing ${visibleCount}.`;
+      statusEl.textContent = `Loaded ${dataset.length} images. Showing ${visibleCount}. Selected ${selectedCount}.`;
+    }
+
+    function parseTags(value) {
+      return value
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+    }
+
+    function exportJson() {
+      const out = JSON.stringify(dataset, null, 2) + '\n';
+      const blob = new Blob([out], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'output_image_urls.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function applyBulkToSelected() {
+      const themeVal = bulkThemeEl.value.trim();
+      const subThemeVal = bulkSubThemeEl.value.trim();
+      const bulkTags = parseTags(bulkTagsEl.value);
+      entries.forEach((entry) => {
+        if (!entry.selectInput.checked) return;
+        if (themeVal) {
+          entry.item.theme = themeVal;
+          entry.themeInput.value = themeVal;
+        }
+        if (subThemeVal) {
+          entry.item.sub_theme = subThemeVal;
+          entry.subThemeInput.value = subThemeVal;
+        }
+        if (bulkTags.length) {
+          const merged = new Set([...(Array.isArray(entry.item.tags) ? entry.item.tags : []), ...bulkTags]);
+          entry.item.tags = Array.from(merged);
+          entry.tagsInput.value = entry.item.tags.join(', ');
+        }
+      });
+      applyFilters();
+    }
+
+    function renderThemePicker() {
+      const seen = new Set();
+      const themes = [];
+      dataset.forEach((item) => {
+        const t = String(item.theme || '').trim();
+        if (!t) return;
+        const key = t.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        themes.push(t);
+      });
+      themes.sort((a, b) => a.localeCompare(b));
+
+      themePickerEl.innerHTML = '';
+      const allOpt = document.createElement('option');
+      allOpt.value = '';
+      allOpt.textContent = 'All themes';
+      themePickerEl.appendChild(allOpt);
+
+      themes.forEach((theme) => {
+        const opt = document.createElement('option');
+        opt.value = theme;
+        opt.textContent = theme;
+        themePickerEl.appendChild(opt);
+      });
+    }
+
+    function renderSubThemePicker() {
+      const seen = new Set();
+      const subThemes = [];
+      dataset.forEach((item) => {
+        const s = String(item.sub_theme || '').trim();
+        if (!s) return;
+        const key = s.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        subThemes.push(s);
+      });
+      subThemes.sort((a, b) => a.localeCompare(b));
+
+      subThemePickerEl.innerHTML = '';
+      const allOpt = document.createElement('option');
+      allOpt.value = '';
+      allOpt.textContent = 'All sub-themes';
+      subThemePickerEl.appendChild(allOpt);
+
+      subThemes.forEach((subTheme) => {
+        const opt = document.createElement('option');
+        opt.value = subTheme;
+        opt.textContent = subTheme;
+        subThemePickerEl.appendChild(opt);
+      });
     }
 
     async function init() {
       try {
-        buildThemeSets();
         const res = await fetch('./output_image_urls.json', { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
         if (!Array.isArray(data)) throw new Error('Expected JSON array');
 
-        renderThemeControls();
-
-        data.forEach((item) => {
+        const sorted = [...data].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        sorted.forEach((item) => {
           if (!item || !item.URL) return;
+          if (typeof item.theme !== 'string') item.theme = '';
+          if (typeof item.sub_theme !== 'string') item.sub_theme = '';
+          if (!Array.isArray(item.tags)) item.tags = [];
 
-          const card = makeCard(item);
+          dataset.push(item);
+          const { card, themeInput, subThemeInput, tagsInput, selectInput } = makeCard(item);
           gridEl.appendChild(card);
-          loadedCount += 1;
 
-          const itemName = normalize(item.name);
-          const themes = [];
-          THEME_DEFS.forEach((theme) => {
-            const set = THEME_SETS.get(theme.id);
-            if (set && set.has(itemName)) themes.push(theme.id);
+          themeInput.addEventListener('input', () => {
+            item.theme = themeInput.value.trim();
+            applyFilters();
           });
-          entries.push({ card, themes });
+          subThemeInput.addEventListener('input', () => {
+            item.sub_theme = subThemeInput.value.trim();
+          });
+          tagsInput.addEventListener('change', () => {
+            item.tags = parseTags(tagsInput.value);
+            tagsInput.value = item.tags.join(', ');
+            applyFilters();
+          });
+          selectInput.addEventListener('change', () => {
+            updateCardSelectionVisual({ card, selectInput });
+            applyFilters();
+          });
+
+          const entry = { card, item, themeInput, subThemeInput, tagsInput, selectInput };
+          entries.push(entry);
+          updateCardSelectionVisual(entry);
+        });
+
+        renderThemePicker();
+        renderSubThemePicker();
+        themePickerEl.addEventListener('change', applyFilters);
+        subThemePickerEl.addEventListener('change', applyFilters);
+        themeFilterEl.addEventListener('input', applyFilters);
+        tagFilterEl.addEventListener('input', applyFilters);
+        unthemedOnlyEl.addEventListener('change', applyFilters);
+        clearFiltersEl.addEventListener('click', () => {
+          themePickerEl.value = '';
+          subThemePickerEl.value = '';
+          themeFilterEl.value = '';
+          tagFilterEl.value = '';
+          unthemedOnlyEl.checked = false;
+          applyFilters();
+        });
+        exportJsonEl.addEventListener('click', exportJson);
+        applySelectedEl.addEventListener('click', applyBulkToSelected);
+        selectVisibleEl.addEventListener('click', () => {
+          entries.forEach((entry) => {
+            if (entry.card.style.display !== 'none') {
+              entry.selectInput.checked = true;
+              updateCardSelectionVisual(entry);
+            }
+          });
+          applyFilters();
+        });
+        clearSelectionEl.addEventListener('click', () => {
+          entries.forEach((entry) => {
+            entry.selectInput.checked = false;
+            updateCardSelectionVisual(entry);
+          });
+          applyFilters();
         });
 
         applyFilters();
       } catch (err) {
-        statusEl.innerHTML = `<span class="error">Failed to load JSON: ${err.message}</span>`;
-        themeControlsEl.innerHTML = '';
+        statusEl.innerHTML = `<span class="error">Failed to load JSON: ${err.message}</span>`;        
       }
     }
 
