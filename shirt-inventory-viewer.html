@@ -186,33 +186,58 @@
       background: #fff;
     }
 
+    .apply-btn {
+      margin-top: 2px;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+    }
+
     .error { color: #b91c1c; font-weight: 600; }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <h1>output_image_urls.json Viewer</h1>
+    <h1>shirt_inventory.json Viewer</h1>
     <div id="status" class="status">Loading...</div>
     <div class="toolbar">
       <label class="filter">
-        <span>Theme picker</span>
-        <select id="theme-picker">
-          <option value="">All themes</option>
+        <span>Include themes</span>
+        <select id="include-theme">
+          <option value="">Any</option>
         </select>
       </label>
       <label class="filter">
-        <span>Sub-theme picker</span>
-        <select id="sub-theme-picker">
-          <option value="">All sub-themes</option>
+        <span>Exclude themes</span>
+        <select id="exclude-theme">
+          <option value="">None</option>
         </select>
       </label>
       <label class="filter">
-        <span>Filter theme</span>
-        <input id="theme-filter" type="text" placeholder="e.g. geography" />
+        <span>Include sub-themes</span>
+        <select id="include-sub-theme">
+          <option value="">Any</option>
+        </select>
       </label>
       <label class="filter">
-        <span>Filter tag</span>
-        <input id="tag-filter" type="text" placeholder="e.g. movies" />
+        <span>Exclude sub-themes</span>
+        <select id="exclude-sub-theme">
+          <option value="">None</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Include tags</span>
+        <input id="include-tags" type="text" placeholder="comma-separated exact tags" />
+      </label>
+      <label class="filter">
+        <span>Exclude tags</span>
+        <input id="exclude-tags" type="text" placeholder="comma-separated exact tags" />
       </label>
       <label class="toggle-row">
         <input id="unthemed-only" type="checkbox" />
@@ -244,10 +269,12 @@
   <script>
     const statusEl = document.getElementById('status');
     const gridEl = document.getElementById('grid');
-    const themePickerEl = document.getElementById('theme-picker');
-    const subThemePickerEl = document.getElementById('sub-theme-picker');
-    const themeFilterEl = document.getElementById('theme-filter');
-    const tagFilterEl = document.getElementById('tag-filter');
+    const includeThemeEl = document.getElementById('include-theme');
+    const excludeThemeEl = document.getElementById('exclude-theme');
+    const includeSubThemeEl = document.getElementById('include-sub-theme');
+    const excludeSubThemeEl = document.getElementById('exclude-sub-theme');
+    const includeTagsEl = document.getElementById('include-tags');
+    const excludeTagsEl = document.getElementById('exclude-tags');
     const unthemedOnlyEl = document.getElementById('unthemed-only');
     const clearFiltersEl = document.getElementById('clear-filters');
     const exportJsonEl = document.getElementById('export-json');
@@ -274,15 +301,23 @@
       const img = document.createElement('img');
       img.className = 'thumb';
       img.loading = 'lazy';
-      img.src = item.URL;
-      img.alt = item.name || 'image';
+      img.src = item.image_url || item.URL;
+      img.alt = item.shirt_name || item.name || 'image';
 
       const name = document.createElement('div');
       name.className = 'name';
-      name.textContent = item.name || '(unnamed)';
+      name.textContent = item.shirt_name || item.name || '(unnamed)';
 
       const editor = document.createElement('div');
       editor.className = 'editor';
+
+      const shirtNameField = document.createElement('label');
+      shirtNameField.className = 'field';
+      shirtNameField.innerHTML = '<span>Shirt name</span>';
+      const shirtNameInput = document.createElement('input');
+      shirtNameInput.type = 'text';
+      shirtNameInput.value = item.shirt_name || item.name || '';
+      shirtNameField.appendChild(shirtNameInput);
 
       const themeField = document.createElement('label');
       themeField.className = 'field';
@@ -308,26 +343,73 @@
       tagsInput.value = Array.isArray(item.tags) ? item.tags.join(', ') : '';
       tagsField.appendChild(tagsInput);
 
+      const productUrlField = document.createElement('label');
+      productUrlField.className = 'field';
+      productUrlField.innerHTML = '<span>Product URL</span>';
+      const productUrlInput = document.createElement('input');
+      productUrlInput.type = 'text';
+      productUrlInput.value = item.product_url || '';
+      productUrlField.appendChild(productUrlInput);
+
+      const applyButton = document.createElement('button');
+      applyButton.type = 'button';
+      applyButton.className = 'apply-btn';
+      applyButton.textContent = 'Apply';
+
+      editor.appendChild(shirtNameField);
       editor.appendChild(themeField);
       editor.appendChild(subThemeField);
       editor.appendChild(tagsField);
+      editor.appendChild(productUrlField);
+      editor.appendChild(applyButton);
 
       card.appendChild(selectWrap);
       card.appendChild(img);
       card.appendChild(name);
       card.appendChild(editor);
-      return { card, themeInput, subThemeInput, tagsInput, selectInput };
+      return { card, name, img, shirtNameInput, themeInput, subThemeInput, tagsInput, productUrlInput, applyButton, selectInput };
     }
 
     function updateCardSelectionVisual(entry) {
       entry.card.classList.toggle('selected', entry.selectInput.checked);
     }
 
+    function parseFilterSet(value) {
+      return new Set(
+        String(value || '')
+          .split(',')
+          .map((v) => v.trim().toLowerCase())
+          .filter(Boolean)
+      );
+    }
+
+    function lowerValue(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function fillSelect(selectEl, values, emptyLabel) {
+      const current = selectEl.value;
+      selectEl.innerHTML = '';
+      const emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = emptyLabel;
+      selectEl.appendChild(emptyOpt);
+      values.forEach((value) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = value;
+        selectEl.appendChild(opt);
+      });
+      selectEl.value = values.includes(current) ? current : '';
+    }
+
     function applyFilters() {
-      const selectedTheme = themePickerEl.value.trim().toLowerCase();
-      const selectedSubTheme = subThemePickerEl.value.trim().toLowerCase();
-      const themeNeedle = themeFilterEl.value.trim().toLowerCase();
-      const tagNeedle = tagFilterEl.value.trim().toLowerCase();
+      const includeTheme = lowerValue(includeThemeEl.value);
+      const excludeTheme = lowerValue(excludeThemeEl.value);
+      const includeSubTheme = lowerValue(includeSubThemeEl.value);
+      const excludeSubTheme = lowerValue(excludeSubThemeEl.value);
+      const includeTags = parseFilterSet(includeTagsEl.value);
+      const excludeTags = parseFilterSet(excludeTagsEl.value);
       const unthemedOnly = unthemedOnlyEl.checked;
       let visibleCount = 0;
       let selectedCount = 0;
@@ -336,13 +418,19 @@
         const themeVal = String(entry.item.theme || '').toLowerCase();
         const subThemeVal = String(entry.item.sub_theme || '').toLowerCase();
         const tagsVal = Array.isArray(entry.item.tags) ? entry.item.tags.map((t) => String(t).toLowerCase()) : [];
-        const matchPicker = !selectedTheme || themeVal === selectedTheme;
-        const matchSubThemePicker = !selectedSubTheme || subThemeVal === selectedSubTheme;
-        const matchTheme = !themeNeedle || themeVal.includes(themeNeedle);
-        const matchTag = !tagNeedle || tagsVal.some((t) => t.includes(tagNeedle));
+        const matchIncludeTheme = !includeTheme || includeTheme === themeVal;
+        const matchExcludeTheme = !excludeTheme || excludeTheme !== themeVal;
+        const matchIncludeSubTheme = !includeSubTheme || includeSubTheme === subThemeVal;
+        const matchExcludeSubTheme = !excludeSubTheme || excludeSubTheme !== subThemeVal;
+        const matchIncludeTag = includeTags.size === 0 || tagsVal.some((t) => includeTags.has(t));
+        const matchExcludeTag = !tagsVal.some((t) => excludeTags.has(t));
         const matchUnthemed = !unthemedOnly || !entry.item.theme || !entry.item.theme.trim();
-        const show = matchPicker && matchSubThemePicker && matchTheme && matchTag && matchUnthemed;
+        const show = matchIncludeTheme && matchExcludeTheme && matchIncludeSubTheme && matchExcludeSubTheme && matchIncludeTag && matchExcludeTag && matchUnthemed;
         entry.card.style.display = show ? '' : 'none';
+        if (!show && entry.selectInput.checked) {
+          entry.selectInput.checked = false;
+          updateCardSelectionVisual(entry);
+        }
         if (show) visibleCount += 1;
         if (entry.selectInput.checked) selectedCount += 1;
       });
@@ -363,7 +451,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'output_image_urls.json';
+      a.download = 'shirt_inventory.json';
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -375,7 +463,7 @@
       const subThemeVal = bulkSubThemeEl.value.trim();
       const bulkTags = parseTags(bulkTagsEl.value);
       entries.forEach((entry) => {
-        if (!entry.selectInput.checked) return;
+        if (!entry.selectInput.checked || entry.card.style.display === 'none') return;
         if (themeVal) {
           entry.item.theme = themeVal;
           entry.themeInput.value = themeVal;
@@ -389,117 +477,87 @@
           entry.item.tags = Array.from(merged);
           entry.tagsInput.value = entry.item.tags.join(', ');
         }
+        entry.selectInput.checked = false;
+        updateCardSelectionVisual(entry);
       });
       applyFilters();
     }
 
-    function renderThemePicker() {
-      const seen = new Set();
-      const themes = [];
-      dataset.forEach((item) => {
-        const t = String(item.theme || '').trim();
-        if (!t) return;
-        const key = t.toLowerCase();
-        if (seen.has(key)) return;
-        seen.add(key);
-        themes.push(t);
-      });
-      themes.sort((a, b) => a.localeCompare(b));
-
-      themePickerEl.innerHTML = '';
-      const allOpt = document.createElement('option');
-      allOpt.value = '';
-      allOpt.textContent = 'All themes';
-      themePickerEl.appendChild(allOpt);
-
-      themes.forEach((theme) => {
-        const opt = document.createElement('option');
-        opt.value = theme;
-        opt.textContent = theme;
-        themePickerEl.appendChild(opt);
-      });
-    }
-
-    function renderSubThemePicker() {
-      const seen = new Set();
-      const subThemes = [];
-      dataset.forEach((item) => {
-        const s = String(item.sub_theme || '').trim();
-        if (!s) return;
-        const key = s.toLowerCase();
-        if (seen.has(key)) return;
-        seen.add(key);
-        subThemes.push(s);
-      });
-      subThemes.sort((a, b) => a.localeCompare(b));
-
-      subThemePickerEl.innerHTML = '';
-      const allOpt = document.createElement('option');
-      allOpt.value = '';
-      allOpt.textContent = 'All sub-themes';
-      subThemePickerEl.appendChild(allOpt);
-
-      subThemes.forEach((subTheme) => {
-        const opt = document.createElement('option');
-        opt.value = subTheme;
-        opt.textContent = subTheme;
-        subThemePickerEl.appendChild(opt);
-      });
-    }
-
     async function init() {
       try {
-        const res = await fetch('./output_image_urls.json', { cache: 'no-store' });
+        const res = await fetch('./shirt_inventory.json', { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
         if (!Array.isArray(data)) throw new Error('Expected JSON array');
 
-        const sorted = [...data].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        const sorted = [...data].sort((a, b) =>
+          String(a.shirt_name || a.name || '').localeCompare(String(b.shirt_name || b.name || ''))
+        );
         sorted.forEach((item) => {
-          if (!item || !item.URL) return;
+          item.shirt_name = String(item.shirt_name || item.name || '');
+          item.image_url = String(item.image_url || item.URL || '');
+          if (!item || !item.image_url) return;
           if (typeof item.theme !== 'string') item.theme = '';
           if (typeof item.sub_theme !== 'string') item.sub_theme = '';
           if (!Array.isArray(item.tags)) item.tags = [];
+          if (typeof item.product_url !== 'string') item.product_url = '';
+          if (typeof item.tone !== 'string') item.tone = '';
+          if (typeof item.priority !== 'string') item.priority = '';
+          if (typeof item.evergreen !== 'boolean') item.evergreen = null;
+          item.name = item.shirt_name;
+          item.URL = item.image_url;
 
           dataset.push(item);
-          const { card, themeInput, subThemeInput, tagsInput, selectInput } = makeCard(item);
+          const { card, name, img, shirtNameInput, themeInput, subThemeInput, tagsInput, productUrlInput, applyButton, selectInput } = makeCard(item);
           gridEl.appendChild(card);
-
-          themeInput.addEventListener('input', () => {
-            item.theme = themeInput.value.trim();
-            applyFilters();
-          });
-          subThemeInput.addEventListener('input', () => {
-            item.sub_theme = subThemeInput.value.trim();
-          });
-          tagsInput.addEventListener('change', () => {
-            item.tags = parseTags(tagsInput.value);
-            tagsInput.value = item.tags.join(', ');
-            applyFilters();
-          });
           selectInput.addEventListener('change', () => {
             updateCardSelectionVisual({ card, selectInput });
             applyFilters();
           });
+          applyButton.addEventListener('click', () => {
+            item.shirt_name = shirtNameInput.value.trim();
+            item.name = item.shirt_name;
+            name.textContent = item.shirt_name || '(unnamed)';
+            img.alt = item.shirt_name || 'image';
+            item.theme = themeInput.value.trim();
+            item.sub_theme = subThemeInput.value.trim();
+            item.tags = parseTags(tagsInput.value);
+            tagsInput.value = item.tags.join(', ');
+            item.product_url = productUrlInput.value.trim();
+            applyFilters();
+          });
 
-          const entry = { card, item, themeInput, subThemeInput, tagsInput, selectInput };
+          const entry = { card, item, name, img, shirtNameInput, themeInput, subThemeInput, tagsInput, productUrlInput, applyButton, selectInput };
           entries.push(entry);
           updateCardSelectionVisual(entry);
         });
 
-        renderThemePicker();
-        renderSubThemePicker();
-        themePickerEl.addEventListener('change', applyFilters);
-        subThemePickerEl.addEventListener('change', applyFilters);
-        themeFilterEl.addEventListener('input', applyFilters);
-        tagFilterEl.addEventListener('input', applyFilters);
+        const themes = Array.from(
+          new Set(dataset.map((item) => String(item.theme || '').trim()).filter(Boolean))
+        ).sort((a, b) => a.localeCompare(b));
+        const subThemes = Array.from(
+          new Set(dataset.map((item) => String(item.sub_theme || '').trim()).filter(Boolean))
+        ).sort((a, b) => a.localeCompare(b));
+        fillSelect(includeThemeEl, themes, 'Any');
+        fillSelect(excludeThemeEl, themes, 'None');
+        fillSelect(includeSubThemeEl, subThemes, 'Any');
+        fillSelect(excludeSubThemeEl, subThemes, 'None');
+
+        includeThemeEl.addEventListener('change', applyFilters);
+        excludeThemeEl.addEventListener('change', applyFilters);
+        includeSubThemeEl.addEventListener('change', applyFilters);
+        excludeSubThemeEl.addEventListener('change', applyFilters);
+        includeTagsEl.addEventListener('input', applyFilters);
+        excludeTagsEl.addEventListener('input', applyFilters);
         unthemedOnlyEl.addEventListener('change', applyFilters);
         clearFiltersEl.addEventListener('click', () => {
-          themePickerEl.value = '';
-          subThemePickerEl.value = '';
-          themeFilterEl.value = '';
-          tagFilterEl.value = '';
+          includeThemeEl.value = '';
+          excludeThemeEl.value = '';
+          includeSubThemeEl.value = '';
+          excludeSubThemeEl.value = '';
+          includeTagsEl.value = '';
+          excludeTagsEl.value = '';
           unthemedOnlyEl.checked = false;
           applyFilters();
         });
