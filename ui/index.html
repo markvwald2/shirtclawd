@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ClawdBot Usage Dashboard</title>
+    <link rel="stylesheet" href="/ui/styles.css">
+  </head>
+  <body>
+    <main class="dashboard">
+      <section class="hero">
+        <p class="eyebrow">ClawdBot</p>
+        <h1>Usage Dashboard</h1>
+        <p class="lede">Inspect AI token usage, fallbacks, latency, and output patterns over time.</p>
+      </section>
+
+      <section class="cards" id="summary-cards"></section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Draft Preview</h2>
+          <p>Browse recent post batches and inspect generated copy</p>
+        </div>
+        <div class="preview-toolbar">
+          <label class="preview-label" for="post-file-select">Batch</label>
+          <select id="post-file-select" class="preview-select"></select>
+        </div>
+        <div id="post-preview-grid" class="post-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Daily Tokens</h2>
+          <p>Input vs output over time</p>
+        </div>
+        <div id="daily-chart" class="chart"></div>
+      </section>
+
+      <section class="split">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Writer Outcomes</h2>
+            <p>Success, fallback, and error events</p>
+          </div>
+          <div id="status-chart" class="bars"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Model Usage</h2>
+            <p>Requests and token totals by model</p>
+          </div>
+          <div id="model-table"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Recent Events</h2>
+          <p>Latest AI generation attempts</p>
+        </div>
+        <div id="events-table"></div>
+      </section>
+    </main>
+
+    <script src="/ui/app.js"></script>
+  </body>
+</html>

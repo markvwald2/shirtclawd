@@ -1,14 +1,26 @@
-[
-  {
-    "type": "quiz",
-    "template": "QUIZ TIME 🧠\n\nCan you answer this about {sub_theme}?\n\nDrop your guess in the comments 👇"
+{
+  "default": {
+    "max_hashtags": 3,
+    "append_hashtags_to_caption": false,
+    "headline_prefix": "",
+    "cta_suffix": ""
   },
-  {
-    "type": "fun_fact",
-    "template": "Did you know?\n\nHere's something interesting about {sub_theme}.\n\nGeography fans, weigh in 👇"
+  "instagram": {
+    "max_hashtags": 5,
+    "append_hashtags_to_caption": true,
+    "headline_prefix": "",
+    "cta_suffix": "Save this one for later."
   },
-  {
-    "type": "debate",
-    "template": "SETTLE A DEBATE\n\nWhat's the best thing about {sub_theme}?\n\nTell us your take 👇"
+  "facebook": {
+    "max_hashtags": 2,
+    "append_hashtags_to_caption": false,
+    "headline_prefix": "Featured: ",
+    "cta_suffix": "Tell us if this one found the right audience."
+  },
+  "x": {
+    "max_hashtags": 2,
+    "append_hashtags_to_caption": true,
+    "headline_prefix": "",
+    "cta_suffix": "Reply if you get the reference."
   }
-]
+}

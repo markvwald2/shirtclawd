@@ -1,0 +1,8 @@
+{
+  "_comment": "Optional per-model pricing for local estimated cost tracking. Rates are USD per 1M tokens and should be updated manually.",
+  "gpt-4o-mini": {
+    "input_per_1m": 0.15,
+    "cached_input_per_1m": 0.075,
+    "output_per_1m": 0.6
+  }
+}

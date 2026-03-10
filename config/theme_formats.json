@@ -1,19 +1,34 @@
 {
-  "geography": [
-    "quiz_capital",
-    "guess_the_state",
-    "rank_flags"
-  ],
-  "movies": [
-    "movie_quote_quiz",
-    "best_movie_debate"
-  ],
-  "sports": [
-    "sports_trivia",
-    "team_loyalty_poll"
-  ],
-  "transportation": [
-    "transit_guess",
-    "best_transit_system"
-  ]
+  "default": {
+    "audience": "people who like specific jokes instead of generic merch",
+    "angles": ["spotlight", "collector", "curiosity"]
+  },
+  "geography": {
+    "audience": "map nerds, state-flag obsessives, and obscure place loyalists",
+    "angles": ["local_pride", "collector", "curiosity"]
+  },
+  "transportation": {
+    "audience": "transit people who absolutely notice the reference",
+    "angles": ["insider_nod", "collector", "spotlight"]
+  },
+  "movies": {
+    "audience": "people who quote scenes faster than they explain themselves",
+    "angles": ["reference_flex", "debate", "spotlight"]
+  },
+  "sports": {
+    "audience": "fans who turn niche loyalty into a personality trait",
+    "angles": ["fan_identity", "debate", "spotlight"]
+  },
+  "music": {
+    "audience": "listeners who like their references a little deeper than radio level",
+    "angles": ["reference_flex", "collector", "spotlight"]
+  },
+  "funny": {
+    "audience": "people who prefer deadpan jokes over obvious punchlines",
+    "angles": ["deadpan", "spotlight", "curiosity"]
+  },
+  "religion": {
+    "audience": "people who enjoy theological references with some bite",
+    "angles": ["reference_flex", "deadpan", "spotlight"]
+  }
 }

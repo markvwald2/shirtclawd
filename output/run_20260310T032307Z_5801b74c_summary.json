@@ -1,0 +1,25 @@
+{
+  "run_id": "run_20260310T032307Z_5801b74c",
+  "started_at": "2026-03-10T03:23:07.866913+00:00",
+  "platform": "x",
+  "writer_mode": "auto",
+  "ai_model": "gpt-4o-mini",
+  "requested_count": 1,
+  "generated_count": 1,
+  "ai_attempts": 1,
+  "ai_successes": 0,
+  "ai_fallbacks": 1,
+  "ai_errors": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "total_tokens": 0,
+  "cached_tokens": 0,
+  "reasoning_tokens": 0,
+  "estimated_cost_usd": 0,
+  "posts_by_writer_mode": {
+    "rule": 1
+  },
+  "posts_by_post_type": {
+    "curiosity": 1
+  }
+}
