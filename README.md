@@ -1,208 +1,225 @@
 # ClawdBot
 
-ClawdBot is an automated content generator for the ShirtClawd project. It reads structured shirt inventory data, selects items that should be promoted, and generates ready-to-post social media content.
+ClawdBot is a lightweight content pipeline for ShirtClawd. It syncs shirt inventory, selects products to promote, generates social copy with either deterministic rules or OpenAI, writes post batches to disk, and can optionally publish approved posts to X.
 
-The system is designed to be **lightweight, deterministic where possible, and inexpensive to run**, minimizing AI token usage while still producing engaging posts.
+The repo is intentionally small and file-based. Most state lives in JSON and JSONL files under `data/` and `output/`.
 
----
+## What It Does
 
-# Overview
+ClawdBot currently supports:
 
-ClawdBot's job is to:
+- inventory sync from the public ShirtClawd source dataset
+- inventory normalization and validation
+- promotion history tracking
+- rule-based or AI-assisted post generation
+- platform-specific formatting for Instagram, Facebook, and X
+- AI usage, latency, token, and cost logging
+- budget guards that force rule-based fallback
+- X approval queue management
+- dry-run and live publishing to X with image upload
+- a local dashboard for draft previews and usage metrics
 
-1. Read shirt inventory data from a **source-of-truth dataset**.
-2. Select shirts that should be promoted.
-3. Generate social media posts.
-4. Output structured post content ready for publishing.
+## What It Does Not Do
 
-The bot is intended to run on a schedule (for example, a few hours per day) and produce a small number of posts each run.
+ClawdBot does not currently:
 
----
+- run its own scheduler
+- publish directly to Instagram or Facebook
+- maintain a feedback loop from post performance
+- discover trends or seasonal topics from external sources
+- edit or enrich product images
+- act as a full campaign planner or analytics system
 
-# Source of Truth
+## Repo Layout
 
-ClawdBot does **not** maintain its own inventory.
+```text
+bot/
+  ai_writer.py         OpenAI Responses API client and response validation
+  approval_queue.py    File-based approval storage for X publishing
+  data_loader.py       Inventory normalization, validation, dedupe
+  inventory_sync.py    Remote inventory fetch, metadata, snapshots
+  post_generator.py    Rule-based post generation and platform formatting
+  selector.py          Eligible shirt selection and promotion history helpers
+  usage_logger.py      AI usage events, budget guards, run summaries
+  writer.py            Output batch and index writing
+  x_publisher.py       X dry-run/live publishing and media upload
 
-Instead it pulls from the public dataset:
+config/
+  content_formats.json Platform formatting rules
+  model_pricing.json   Estimated AI pricing data
+  theme_formats.json   Theme-specific audience and angle settings
 
-`data/shirt_inventory.json`
+data/
+  shirt_inventory.json Current local inventory snapshot
+  inventory_metadata.json
+  promotion_history.json
+  x_approval_queue.json
+  ai_usage.jsonl
+  x_publish_log.jsonl
+  snapshots/
 
-Example record:
+output/
+  posts_YYYY-MM-DD_<platform>.json
+  post_index.json
+  run_<timestamp>_<id>_summary.json
 
-```json
-{
-  "shirt_id": "5d89cc30f937647d81ffc564",
-  "title": "Biblical Sense",
-  "tags": ["bible", "Jesus", "Bible", "Christianity", "religion"],
-  "url": "https://thirdstringshirts.com/...",
-  "image_url": "...",
-  "status": "available"
-}
+ui/
+  index.html
+  app.js
+  styles.css
+
+tests/
+  Unit tests for sync, selection, generation, approvals, publishing, and budget guards
 ```
 
-This dataset is treated as the **canonical data source**.
+## Main Entry Points
 
-ClawdBot only reads from it.
-
----
-
-# Core Responsibilities
-
-## 1. Load Inventory
-
-ClawdBot reads the inventory dataset and builds an in-memory representation of available shirts.
-
-Basic validation is performed:
-
-* required fields present
-* duplicates avoided
-* status filtering (ex: available shirts only)
-
----
-
-## 2. Select Shirts to Promote
-
-Selection logic may include:
-
-* shirts not recently promoted
-* random sampling
-* category rotation
-* seasonal relevance
-* tag-based selection
-
-The goal is to keep the feed varied.
-
----
-
-## 3. Generate Post Content
-
-For each selected shirt, ClawdBot generates:
-
-* headline
-* caption text
-* hashtags
-* optional alt text
-
-Example output:
-
-```
-Title: Biblical Sense
-
-Caption:
-Faith meets fashion. Biblical Sense is perfect for anyone who enjoys a little divine humor.
-
-Hashtags:
-#funnyshirts #biblehumor #thirdstringshirts
-```
-
-Posts are generated in a consistent structure so they can be easily published.
-
----
-
-## 4. Output Posts
-
-Posts are written to structured output files.
-
-Example:
-
-```
-output/posts_2026-03-04.json
-```
-
-Example structure:
-
-```json
-{
-  "shirt_id": "5d89cc30f937647d81ffc564",
-  "title": "Biblical Sense",
-  "caption": "...",
-  "hashtags": ["#funnyshirts", "#biblehumor"],
-  "image_url": "...",
-  "url": "..."
-}
-```
-
-These outputs can be consumed by publishing tools or automation workflows.
-
----
-
-# Design Goals
-
-## Low Token Usage
-
-AI generation is used sparingly.
-
-Strategies include:
-
-* deterministic formatting
-* template-based posts
-* batching prompts
-* limiting max tokens
-
----
-
-## Deterministic Data Pipeline
-
-Inventory data is **never modified** by the bot.
-
-All state changes (such as tracking previously promoted shirts) are stored separately.
-
----
-
-## Simple Deployment
-
-ClawdBot is designed to run:
-
-* locally
-* via cron
-* in a lightweight CI job
-* or a scheduled container
-
----
-
-# Example Workflow
-
-```
-1. Fetch inventory dataset
-2. Filter eligible shirts
-3. Select shirts to promote
-4. Generate captions
-5. Write post output files
-```
-
----
-
-# Running ClawdBot
-
-Example:
+### Generate Posts
 
 ```bash
 python generate_posts.py
 ```
 
-Output will appear in:
+Useful flags:
 
+```bash
+python generate_posts.py \
+  --platform instagram \
+  --writer-mode auto \
+  --count 3 \
+  --refresh-inventory
 ```
-/output
+
+Supported writer modes:
+
+- `rule`: deterministic copy only
+- `ai`: OpenAI only, fail hard if AI generation fails
+- `auto`: try AI first, fall back to rule-based copy on failure or budget limits
+
+### Sync Inventory
+
+```bash
+python sync_inventory.py
 ```
 
----
+This fetches the canonical inventory JSON, writes `data/shirt_inventory.json`, records fetch metadata, and stores a timestamped snapshot in `data/snapshots/`.
 
-# Future Enhancements
+### Approve a Post for X
 
-Possible improvements:
+```bash
+python approve_post.py --file output/posts_2026-03-10_x.json --index 0
+```
 
-* track previously posted shirts
-* schedule posts automatically
-* platform-specific formatting (Twitter, Instagram, etc.)
-* analytics feedback loop
-* meme-style caption generation
-* seasonal / trending tag detection
+Approvals are stored in `data/x_approval_queue.json`.
 
----
+### Publish to X
 
-# Philosophy
+Dry run:
 
-ClawdBot exists to **scale humor and promotion without manual effort**.
+```bash
+python publish_to_x.py --file output/posts_2026-03-10_x.json --index 0
+```
 
-By combining structured shirt data with lightweight AI generation, the system produces consistent content while remaining cheap and easy to maintain.
+Live publish:
+
+```bash
+python publish_to_x.py --file output/posts_2026-03-10_x.json --index 0 --publish
+```
+
+By default, live publishing requires a prior approval entry unless `--force` is used.
+
+## Data Flow
+
+ClawdBot follows a simple pipeline:
+
+1. Optionally refresh inventory from the public dataset.
+2. Load and normalize inventory records from `data/shirt_inventory.json`.
+3. Load promotion history from `data/promotion_history.json`.
+4. Select eligible shirts that are available and not recently promoted.
+5. Generate copy using rule-based logic or OpenAI.
+6. Apply platform-specific formatting rules.
+7. Write the post batch and update `output/post_index.json`.
+8. Append promotion history entries.
+9. Log AI usage events and write a per-run summary.
+10. Optionally approve and publish individual X posts later.
+
+## Configuration
+
+### Theme Strategy
+
+`config/theme_formats.json` defines audience assumptions and allowed post angles per theme.
+
+### Platform Formatting
+
+`config/content_formats.json` controls:
+
+- hashtag count limits
+- whether hashtags are appended to captions
+- headline prefixes
+- CTA suffixes
+
+### Model Pricing
+
+`config/model_pricing.json` is used only for estimated cost calculations in usage logs and summaries.
+
+## State and Output Files
+
+ClawdBot is file-based. Important files:
+
+- `data/shirt_inventory.json`: current synced inventory
+- `data/inventory_metadata.json`: source URL, fetch time, checksum, snapshot path
+- `data/promotion_history.json`: generated-post history used for selection
+- `data/x_approval_queue.json`: approved X posts
+- `data/ai_usage.jsonl`: per-attempt AI usage and fallback events
+- `data/x_publish_log.jsonl`: X dry-run and publish log
+- `output/posts_*.json`: generated post batches
+- `output/post_index.json`: small index used by the UI
+- `output/run_*_summary.json`: per-run aggregate metrics
+
+## Environment Variables
+
+### OpenAI
+
+Required for `--writer-mode ai` and `--writer-mode auto` when AI generation is attempted:
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` optional override
+
+### X Publishing
+
+Required for live publishing to X:
+
+- `X_API_KEY`
+- `X_API_KEY_SECRET`
+- `X_ACCESS_TOKEN`
+- `X_ACCESS_TOKEN_SECRET`
+
+## Local Dashboard
+
+The `ui/` directory contains a small static dashboard that reads:
+
+- `output/post_index.json`
+- generated post batch files in `output/`
+- `data/ai_usage.jsonl`
+- `data/x_approval_queue.json`
+
+It is for inspection only. It does not trigger generation, approval, or publishing actions.
+
+## Testing
+
+Run the unit suite with:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+## Design Notes
+
+ClawdBot is optimized for:
+
+- low operational complexity
+- low AI spend
+- deterministic fallback behavior
+- plain JSON artifacts that are easy to inspect and automate around
+
+It is not designed as a long-running service. It is a batch-oriented toolchain that can be scheduled externally.
