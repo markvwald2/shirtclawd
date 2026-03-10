@@ -1,0 +1,19 @@
+{
+  "geography": [
+    "quiz_capital",
+    "guess_the_state",
+    "rank_flags"
+  ],
+  "movies": [
+    "movie_quote_quiz",
+    "best_movie_debate"
+  ],
+  "sports": [
+    "sports_trivia",
+    "team_loyalty_poll"
+  ],
+  "transportation": [
+    "transit_guess",
+    "best_transit_system"
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "type": "quiz",
+    "template": "QUIZ TIME 🧠\n\nCan you answer this about {sub_theme}?\n\nDrop your guess in the comments 👇"
+  },
+  {
+    "type": "fun_fact",
+    "template": "Did you know?\n\nHere's something interesting about {sub_theme}.\n\nGeography fans, weigh in 👇"
+  },
+  {
+    "type": "debate",
+    "template": "SETTLE A DEBATE\n\nWhat's the best thing about {sub_theme}?\n\nTell us your take 👇"
+  }
+]
