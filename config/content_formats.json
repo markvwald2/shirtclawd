@@ -22,5 +22,23 @@
     "append_hashtags_to_caption": true,
     "headline_prefix": "",
     "cta_suffix": "Reply if you get the reference."
+  },
+  "bluesky": {
+    "max_hashtags": 2,
+    "append_hashtags_to_caption": true,
+    "headline_prefix": "",
+    "cta_suffix": "Tell us if the reference lands."
+  },
+  "reels": {
+    "max_hashtags": 4,
+    "append_hashtags_to_caption": true,
+    "headline_prefix": "",
+    "cta_suffix": "Hold this one for your next scroll stop."
+  },
+  "tiktok": {
+    "max_hashtags": 4,
+    "append_hashtags_to_caption": true,
+    "headline_prefix": "",
+    "cta_suffix": "Drop this in the group chat."
   }
 }

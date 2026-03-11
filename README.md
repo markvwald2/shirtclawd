@@ -10,9 +10,10 @@ ClawdBot currently supports:
 
 - inventory sync from the public ShirtClawd source dataset
 - inventory normalization and validation
+- local annotation merge for approval-only promotion eligibility and reference context
 - promotion history tracking
 - rule-based or AI-assisted post generation
-- platform-specific formatting for Instagram, Facebook, and X
+- platform-specific formatting for Instagram, Facebook, X, Bluesky, Reels, and TikTok
 - AI usage, latency, token, and cost logging
 - budget guards that force rule-based fallback
 - X approval queue management
@@ -51,6 +52,7 @@ config/
 
 data/
   shirt_inventory.json Current local inventory snapshot
+  shirt_annotations.json Local editorial metadata keyed by shirt_id
   inventory_metadata.json
   promotion_history.json
   x_approval_queue.json
@@ -89,6 +91,15 @@ python generate_posts.py \
   --count 3 \
   --refresh-inventory
 ```
+
+Supported platforms:
+
+- `instagram`
+- `facebook`
+- `x`
+- `bluesky`
+- `reels`
+- `tiktok`
 
 Supported writer modes:
 
@@ -134,14 +145,15 @@ ClawdBot follows a simple pipeline:
 
 1. Optionally refresh inventory from the public dataset.
 2. Load and normalize inventory records from `data/shirt_inventory.json`.
-3. Load promotion history from `data/promotion_history.json`.
-4. Select eligible shirts that are available and not recently promoted.
-5. Generate copy using rule-based logic or OpenAI.
-6. Apply platform-specific formatting rules.
-7. Write the post batch and update `output/post_index.json`.
-8. Append promotion history entries.
-9. Log AI usage events and write a per-run summary.
-10. Optionally approve and publish individual X posts later.
+3. Merge local annotations from `data/shirt_annotations.json`.
+4. Load promotion history from `data/promotion_history.json`.
+5. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
+6. Generate copy using rule-based logic or OpenAI.
+7. Apply platform-specific formatting rules.
+8. Write the post batch and update `output/post_index.json`.
+9. Append promotion history entries.
+10. Log AI usage events and write a per-run summary.
+11. Optionally approve and publish individual X posts later.
 
 ## Configuration
 
@@ -167,6 +179,7 @@ ClawdBot follows a simple pipeline:
 ClawdBot is file-based. Important files:
 
 - `data/shirt_inventory.json`: current synced inventory
+- `data/shirt_annotations.json`: local approval list, audience hints, and reference summaries
 - `data/inventory_metadata.json`: source URL, fetch time, checksum, snapshot path
 - `data/promotion_history.json`: generated-post history used for selection
 - `data/x_approval_queue.json`: approved X posts

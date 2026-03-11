@@ -31,6 +31,7 @@ from bot.writer import write_posts
 DEFAULT_MAX_AI_CALLS = 3
 DEFAULT_MAX_TOTAL_TOKENS = 12000
 DEFAULT_MAX_ESTIMATED_COST = 0.02
+SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "reels", "tiktok")
 
 
 def main():
@@ -40,7 +41,7 @@ def main():
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--history", default="data/promotion_history.json")
     parser.add_argument("--output-dir", default="output")
-    parser.add_argument("--platform", default="instagram")
+    parser.add_argument("--platform", choices=SUPPORTED_PLATFORMS, default="instagram")
     parser.add_argument("--writer-mode", choices=("auto", "rule", "ai"), default="auto")
     parser.add_argument("--ai-model", default=os.getenv("OPENAI_MODEL", DEFAULT_AI_MODEL))
     parser.add_argument("--max-ai-calls", type=int, default=DEFAULT_MAX_AI_CALLS)

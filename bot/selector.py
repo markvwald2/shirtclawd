@@ -17,7 +17,13 @@ def load_history(path=DEFAULT_HISTORY_PATH):
 
 
 def select_shirts(inventory, history, count):
-    eligible = [shirt for shirt in inventory if shirt.get("status") == "available"]
+    eligible = [
+        shirt
+        for shirt in inventory
+        if shirt.get("status") == "available"
+        and shirt.get("is_promotable", True)
+        and shirt.get("promotion_status") != "skip"
+    ]
     if not eligible:
         return []
 

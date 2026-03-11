@@ -1,5 +1,9 @@
+function resolveAppPath(path) {
+  return new URL(`../${path}`, window.location.href).toString();
+}
+
 async function loadUsageEvents() {
-  const response = await fetch("/data/ai_usage.jsonl", { cache: "no-store" });
+  const response = await fetch(resolveAppPath("data/ai_usage.jsonl"), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to load usage log: ${response.status}`);
   }
@@ -12,7 +16,7 @@ async function loadUsageEvents() {
 }
 
 async function loadPostIndex() {
-  const response = await fetch("/output/post_index.json", { cache: "no-store" });
+  const response = await fetch(resolveAppPath("output/post_index.json"), { cache: "no-store" });
   if (!response.ok) {
     return { files: [] };
   }
@@ -20,7 +24,7 @@ async function loadPostIndex() {
 }
 
 async function loadApprovalQueue() {
-  const response = await fetch("/data/x_approval_queue.json", { cache: "no-store" });
+  const response = await fetch(resolveAppPath("data/x_approval_queue.json"), { cache: "no-store" });
   if (!response.ok) {
     return { approved_posts: [] };
   }
@@ -28,7 +32,7 @@ async function loadApprovalQueue() {
 }
 
 async function loadPostBatch(path) {
-  const response = await fetch(`/${path}`, { cache: "no-store" });
+  const response = await fetch(resolveAppPath(path), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to load post batch: ${response.status}`);
   }
@@ -117,27 +121,168 @@ function renderPostPreview(posts, filePath, approvalQueue) {
   );
 
   grid.innerHTML = posts
-    .map(
-      (post) => `
-        <article class="post-card">
-          <div class="post-meta">
-            <span class="pill">${post.platform || "default"}</span>
-            <span class="pill">${post.writer_mode || "unknown"}</span>
-            <span class="pill">${post.post_type || "unknown"}</span>
-            <span class="pill">${approved.has(post.shirt_id) ? "approved" : "not approved"}</span>
-          </div>
-          <h3>${post.title || "Untitled"}</h3>
-          <p class="post-headline">${post.headline || ""}</p>
-          <div class="post-caption">${post.caption || ""}</div>
-          <div class="post-hashtags">${(post.hashtags || []).join(" ")}</div>
-          <div class="post-footer">
-            <span>${post.theme || ""}</span>
-            <a class="post-link" href="${post.url || "#"}" target="_blank" rel="noreferrer">Product link</a>
-          </div>
-        </article>
-      `
-    )
+    .map((post) => renderPlatformPreview(post, approved.has(post.shirt_id)))
     .join("");
+}
+
+function renderPlatformPreview(post, isApproved) {
+  const platform = (post.platform || "default").toLowerCase();
+  const meta = buildMetaPills(post, platform, isApproved);
+
+  if (platform === "instagram" || platform === "reels" || platform === "tiktok") {
+    const captionPreview = buildInstagramCaptionPreview(post);
+    const platformLabel = platform === "reels" ? "Reels draft preview" : platform === "tiktok" ? "TikTok draft preview" : "Sponsored draft preview";
+    return `
+      <article class="post-card post-card-instagram">
+        ${meta}
+        <div class="platform-shell instagram-shell">
+          <div class="instagram-topbar">
+            <div class="instagram-avatar">TS</div>
+            <div>
+              <div class="instagram-handle">thirdstringshirts</div>
+              <div class="instagram-label">${platformLabel}</div>
+            </div>
+          </div>
+          <div class="instagram-image-wrap">
+            <img class="platform-image" src="${post.image_url || ""}" alt="${post.alt_text || ""}">
+          </div>
+          <div class="instagram-actions">
+            <span>♡</span>
+            <span>✦</span>
+            <span>➤</span>
+          </div>
+          <div class="instagram-copy">
+            <div class="instagram-caption"><span class="platform-author">thirdstringshirts</span> ${captionPreview.html}</div>
+            ${captionPreview.truncated ? '<button class="instagram-more" type="button" disabled>more</button>' : ""}
+          </div>
+          <div class="instagram-footer">
+            <div class="instagram-meta-line">${buildShortFormMetaLine(platform)}</div>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  if (platform === "x" || platform === "bluesky") {
+    const tweetPreview = buildXTweetPreview(post, platform);
+    const handle = platform === "bluesky" ? "@thirdstringshirts.bsky.social" : "@3rdStringShirts";
+    return `
+      <article class="post-card post-card-x">
+        ${meta}
+        <div class="platform-shell x-shell">
+          <div class="x-topbar">
+            <div class="x-avatar">TS</div>
+            <div class="x-identity">
+              <div class="x-name-row">
+                <strong>Third String Shirts</strong>
+                <span class="x-handle">${handle}</span>
+              </div>
+              <div class="x-headline">${post.headline || ""}</div>
+            </div>
+          </div>
+          <div class="x-text">${tweetPreview.text}</div>
+          ${
+            post.url
+              ? `
+                <div class="x-link-card">
+                  <div class="x-link-domain">thirdstringshirts.myspreadshop.com</div>
+                  <div class="x-link-title">${post.title || "Product link"}</div>
+                </div>
+              `
+              : ""
+          }
+          ${
+            post.image_url
+              ? `<div class="x-media-wrap"><img class="platform-image" src="${post.image_url}" alt="${post.alt_text || ""}"></div>`
+              : ""
+          }
+          <div class="x-footer">
+            <span>${tweetPreview.characters}/${tweetPreview.limit}</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  return `
+    <article class="post-card">
+      ${meta}
+      <div class="platform-shell">
+        <h3>${post.title || "Untitled"}</h3>
+        <p class="post-headline">${post.headline || ""}</p>
+        <div class="post-caption">${post.caption || ""}</div>
+        <div class="post-footer">
+          <span>${post.theme || ""}</span>
+          <a class="post-link" href="${post.url || "#"}" target="_blank" rel="noreferrer">Product link</a>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function buildInstagramCaptionPreview(post) {
+  const caption = String(post.caption || "");
+  const sanitized = caption
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const limit = 220;
+  if (sanitized.length <= limit) {
+    return { html: sanitized, truncated: false };
+  }
+  const shortened = sanitized.slice(0, limit).trimEnd();
+  const safeBreak = Math.max(shortened.lastIndexOf(" "), Math.floor(limit * 0.7));
+  return {
+    html: `${shortened.slice(0, safeBreak).trimEnd()}…`,
+    truncated: true,
+  };
+}
+
+function buildXTweetPreview(post, platform = "x") {
+  const caption = String(post.caption || "");
+  const normalized = caption
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/#@/g, "#")
+    .replace(/\s+/g, " ")
+    .trim();
+  const limit = platform === "bluesky" ? 300 : 280;
+  return {
+    text: normalized,
+    characters: normalized.length,
+    limit,
+  };
+}
+
+function buildShortFormMetaLine(platform) {
+  if (platform === "reels") {
+    return "Draft preview for Reels cover + caption";
+  }
+  if (platform === "tiktok") {
+    return "Draft preview for TikTok caption card";
+  }
+  return "Draft preview for Instagram feed";
+}
+
+function buildMetaPills(post, platform, isApproved) {
+  const pills = [
+    `platform: ${platform}`,
+    `writer: ${post.writer_mode || "unknown"}`,
+  ];
+
+  const postType = String(post.post_type || "").trim().toLowerCase();
+  if (postType && postType !== platform && postType !== "unknown" && postType !== "social_post") {
+    pills.push(`type: ${post.post_type}`);
+  }
+
+  if (platform === "x" || platform === "bluesky") {
+    pills.push(`status: ${isApproved ? "approved" : "not approved"}`);
+  }
+
+  return `
+    <div class="post-meta">
+      ${pills.map((pill) => `<span class="pill">${pill}</span>`).join("")}
+    </div>
+  `;
 }
 
 function groupByDay(events) {

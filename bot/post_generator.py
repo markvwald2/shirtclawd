@@ -1,5 +1,6 @@
 import json
 import random
+import re
 from pathlib import Path
 
 
@@ -83,7 +84,7 @@ def build_ai_post(shirt, components, content_formats, platform, rng):
         "alt_text": components["alt_text"].strip(),
         "image_url": shirt["image_url"],
         "url": shirt["url"],
-        "post_type": components["post_type"].strip(),
+        "post_type": normalize_post_type(components.get("post_type"), platform),
         "theme": topic,
         "priority": rng.randint(1, 3),
         "platform": platform,
@@ -101,17 +102,38 @@ def normalize_hashtags(hashtags):
     combined = []
     seen = set()
     for tag in hashtags:
-        text = str(tag).strip()
+        text = clean_hashtag(tag)
         if not text:
             continue
-        if not text.startswith("#"):
-            text = f"#{text}"
-        normalized = text.lower().replace(" ", "").replace("-", "")
-        display = "#" + text.lstrip("#").replace(" ", "").replace("-", "")
+        normalized = text.lower()
+        display = text
         if normalized not in seen:
             seen.add(normalized)
             combined.append(display)
     return combined
+
+
+def clean_hashtag(tag):
+    text = str(tag).strip()
+    if not text:
+        return ""
+
+    text = text.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "")
+    text = text.replace("#@", "#").replace("@", "")
+    if not text.startswith("#"):
+        text = f"#{text}"
+
+    body = re.sub(r"[^A-Za-z0-9_]+", "", text.lstrip("#"))
+    if not body:
+        return ""
+    return f"#{body}"
+
+
+def normalize_post_type(post_type, platform):
+    text = str(post_type or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if not text or text in {platform, "social_post", "post", "default"}:
+        return "ai_custom"
+    return text
 
 
 def apply_platform_format(platform, headline, caption, hashtags, content_formats):
@@ -233,10 +255,7 @@ def build_caption(shirt, strategy, theme_formats):
     theme = (shirt.get("theme") or "graphic tees").replace("-", " ")
     sub_theme = (shirt.get("sub_theme") or "").replace("-", " ")
     url = shirt["url"]
-    audience = theme_formats.get(shirt.get("theme"), theme_formats["default"]).get(
-        "audience",
-        theme_formats["default"]["audience"],
-    )
+    audience = resolve_audience(shirt, theme_formats)
     hook = build_hook(shirt)
     reference_anchor = build_reference_anchor(shirt)
     detail = build_detail(shirt)
@@ -284,6 +303,10 @@ def build_hook(shirt):
 
 
 def build_reference_anchor(shirt):
+    reference_summary = str(shirt.get("reference_summary") or "").strip()
+    if reference_summary:
+        return reference_summary
+
     sub_theme = str(shirt.get("sub_theme") or "").strip().replace("-", " ")
     if sub_theme:
         return sub_theme
@@ -298,12 +321,27 @@ def build_reference_anchor(shirt):
 
 
 def build_detail(shirt):
+    reference_summary = str(shirt.get("reference_summary") or "").strip()
+    if reference_summary:
+        return reference_summary
+
     if shirt.get("sub_theme"):
         return f"The reference point here is {shirt['sub_theme']}."
     if shirt.get("tags"):
         tag_text = ", ".join(tag.replace("-", " ") for tag in shirt["tags"][:3])
         return f"It pulls from {tag_text}."
     return "It leans on a very specific joke."
+
+
+def resolve_audience(shirt, theme_formats):
+    target_audience = shirt.get("target_audience") or []
+    if target_audience:
+        return ", ".join(item.replace("-", " ") for item in target_audience[:3])
+
+    return theme_formats.get(shirt.get("theme"), theme_formats["default"]).get(
+        "audience",
+        theme_formats["default"]["audience"],
+    )
 
 
 def random_source(seed):
