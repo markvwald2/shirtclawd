@@ -1,6 +1,28 @@
 {
   "files": [
     {
+      "path": "output/posts_2026-03-11_x.json",
+      "filename": "posts_2026-03-11_x.json",
+      "platform": "x",
+      "post_count": 3,
+      "titles": [
+        "Get Your Ass to Mars",
+        "Guns Don't Kill People",
+        "I Can't Feel My Perineum"
+      ]
+    },
+    {
+      "path": "output/posts_2026-03-11_instagram.json",
+      "filename": "posts_2026-03-11_instagram.json",
+      "platform": "instagram",
+      "post_count": 3,
+      "titles": [
+        "Get Your Ass to Mars",
+        "Guns Don't Kill People",
+        "I Can't Feel My Perineum"
+      ]
+    },
+    {
       "path": "output/posts_2026-03-10_instagram.json",
       "filename": "posts_2026-03-10_instagram.json",
       "platform": "instagram",
