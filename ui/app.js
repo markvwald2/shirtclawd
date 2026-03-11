@@ -2,6 +2,8 @@ function resolveAppPath(path) {
   return new URL(`../${path}`, window.location.href).toString();
 }
 
+const BRAND_AVATAR_URL = "https://pbs.twimg.com/profile_images/896756612177776646/UXJD8PcF_x96.jpg";
+
 async function loadUsageEvents() {
   const response = await fetch(resolveAppPath("data/ai_usage.jsonl"), { cache: "no-store" });
   if (!response.ok) {
@@ -137,7 +139,7 @@ function renderPlatformPreview(post, isApproved) {
         ${meta}
         <div class="platform-shell instagram-shell">
           <div class="instagram-topbar">
-            <div class="instagram-avatar">TS</div>
+            <img class="platform-avatar-image" src="${BRAND_AVATAR_URL}" alt="Third String Shirts avatar">
             <div>
               <div class="instagram-handle">thirdstringshirts</div>
               <div class="instagram-label">${platformLabel}</div>
@@ -171,7 +173,7 @@ function renderPlatformPreview(post, isApproved) {
         ${meta}
         <div class="platform-shell x-shell">
           <div class="x-topbar">
-            <div class="x-avatar">TS</div>
+            <img class="platform-avatar-image" src="${BRAND_AVATAR_URL}" alt="Third String Shirts avatar">
             <div class="x-identity">
               <div class="x-name-row">
                 <strong>Third String Shirts</strong>

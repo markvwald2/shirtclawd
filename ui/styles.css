@@ -212,6 +212,16 @@ h1, h2 {
   letter-spacing: 0.04em;
 }
 
+.platform-avatar-image {
+  display: block;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(28, 26, 23, 0.08);
+  background: #f0e1d0;
+}
+
 .instagram-handle,
 .x-name-row strong {
   font-size: 14px;
