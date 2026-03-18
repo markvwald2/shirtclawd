@@ -2,6 +2,8 @@ import os
 import time
 from argparse import ArgumentParser
 from datetime import datetime, timezone
+import json
+from pathlib import Path
 
 from bot.ai_writer import AIWriterError, DEFAULT_AI_MODEL, generate_post_components
 from bot.data_loader import load_inventory
@@ -41,6 +43,7 @@ def main():
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--history", default="data/promotion_history.json")
     parser.add_argument("--output-dir", default="output")
+    parser.add_argument("--plan", default=None, help="Path to a daily plan JSON file.")
     parser.add_argument("--platform", choices=SUPPORTED_PLATFORMS, default="instagram")
     parser.add_argument("--writer-mode", choices=("auto", "rule", "ai"), default="auto")
     parser.add_argument("--ai-model", default=os.getenv("OPENAI_MODEL", DEFAULT_AI_MODEL))
@@ -64,58 +67,174 @@ def main():
 
     inventory = load_inventory(args.inventory)
     history = load_history(args.history)
+
+    theme_formats = load_theme_formats()
+    content_formats = load_content_formats()
+    pricing = load_pricing()
+    if args.plan:
+        generate_from_plan(args, inventory, theme_formats, content_formats, pricing)
+        return
+
     selected = select_shirts(inventory, history, max(args.count, 0))
     if not selected:
         print("No eligible shirts found. Check inventory status values and history.")
         return
 
-    theme_formats = load_theme_formats()
-    content_formats = load_content_formats()
-    pricing = load_pricing()
-    rng = random_source(args.seed)
-    run_context = create_run_context(
-        args.platform,
-        args.writer_mode,
-        args.ai_model,
-        args.count,
+    generated = generate_for_platform(
+        shirts=selected,
+        platform=args.platform,
+        writer_mode=args.writer_mode,
+        ai_model=args.ai_model,
+        seed=args.seed,
+        output_dir=args.output_dir,
+        pricing=pricing,
+        theme_formats=theme_formats,
+        content_formats=content_formats,
         max_ai_calls=args.max_ai_calls,
         max_total_tokens=args.max_total_tokens,
         max_estimated_cost=args.max_estimated_cost,
     )
+    append_history(generated["history_entries"], args.history)
+
+    print(f"Generated {len(generated['posts'])} posts -> {generated['destination']}")
+    print(f"Run summary -> {generated['summary_path']}")
+
+
+def generate_from_plan(args, inventory, theme_formats, content_formats, pricing):
+    plan = load_daily_plan(args.plan)
+    inventory_by_id = {shirt["shirt_id"]: shirt for shirt in inventory}
+    grouped_entries = {}
+    for entry in plan.get("planned_posts", []):
+        platform = entry.get("platform")
+        if not platform:
+            continue
+        grouped_entries.setdefault(platform, []).append(entry)
+
+    if not grouped_entries:
+        print("Daily plan has no planned posts.")
+        return
+
+    history_entries = []
+    total_posts = 0
+    for platform, entries in grouped_entries.items():
+        shirts = []
+        for entry in entries:
+            shirt_id = entry.get("shirt_id")
+            if shirt_id not in inventory_by_id:
+                raise SystemExit(f"Planned shirt_id {shirt_id} was not found in the current inventory.")
+            shirts.append(inventory_by_id[shirt_id])
+
+        generated = generate_for_platform(
+            shirts=shirts,
+            platform=platform,
+            writer_mode=plan.get("writer_mode", args.writer_mode),
+            ai_model=plan.get("ai_model", args.ai_model),
+            seed=args.seed,
+            output_dir=args.output_dir,
+            pricing=pricing,
+            theme_formats=theme_formats,
+            content_formats=content_formats,
+            max_ai_calls=args.max_ai_calls,
+            max_total_tokens=args.max_total_tokens,
+            max_estimated_cost=args.max_estimated_cost,
+            plan_entries=entries,
+            plan_date=plan.get("plan_date"),
+        )
+        history_entries.extend(generated["history_entries"])
+        total_posts += len(generated["posts"])
+        print(f"Generated {len(generated['posts'])} {platform} posts -> {generated['destination']}")
+        print(f"Run summary -> {generated['summary_path']}")
+
+    if history_entries:
+        append_history(history_entries, args.history)
+    print(f"Generated {total_posts} total posts from plan {args.plan}")
+
+
+def generate_for_platform(
+    shirts,
+    platform,
+    writer_mode,
+    ai_model,
+    seed,
+    output_dir,
+    pricing,
+    theme_formats,
+    content_formats,
+    max_ai_calls,
+    max_total_tokens,
+    max_estimated_cost,
+    plan_entries=None,
+    plan_date=None,
+):
+    rng = random_source(seed)
+    run_context = create_run_context(
+        platform,
+        writer_mode,
+        ai_model,
+        len(shirts),
+        max_ai_calls=max_ai_calls,
+        max_total_tokens=max_total_tokens,
+        max_estimated_cost=max_estimated_cost,
+    )
     posts, usage_events = build_posts_for_mode(
-        shirts=selected,
+        shirts=shirts,
         theme_formats=theme_formats,
         content_formats=content_formats,
-        platform=args.platform,
+        platform=platform,
         rng=rng,
-        writer_mode=args.writer_mode,
-        ai_model=args.ai_model,
+        writer_mode=writer_mode,
+        ai_model=ai_model,
         run_context=run_context,
         pricing=pricing,
     )
+
+    if plan_entries:
+        for post, entry in zip(posts, plan_entries):
+            post.update(plan_metadata(entry, plan_date))
+
     now = datetime.now(timezone.utc)
-    run_date = now.date().isoformat()
-    destination = write_posts(posts, run_date, args.output_dir, args.platform)
+    run_date = plan_date or now.date().isoformat()
+    destination = write_posts(posts, run_date, output_dir, platform)
 
     history_entries = [
         {
             "shirt_id": post["shirt_id"],
             "title": post["title"],
             "generated_at": now.isoformat(),
-            "output_file": str(destination)
+            "output_file": str(destination),
         }
         for post in posts
     ]
-    append_history(history_entries, args.history)
 
     for event in usage_events:
         log_usage_event(event)
 
     summary = build_run_summary(run_context, posts, usage_events)
-    summary_path = write_run_summary(summary, args.output_dir)
+    summary_path = write_run_summary(summary, output_dir)
+    return {
+        "posts": posts,
+        "destination": destination,
+        "history_entries": history_entries,
+        "summary_path": summary_path,
+    }
 
-    print(f"Generated {len(posts)} posts -> {destination}")
-    print(f"Run summary -> {summary_path}")
+
+def load_daily_plan(path):
+    with Path(path).open() as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise ValueError("Daily plan must be a JSON object.")
+    return payload
+
+
+def plan_metadata(entry, plan_date):
+    return {
+        "plan_slot": entry.get("slot"),
+        "approval_required": bool(entry.get("approval_required")),
+        "approval_status": entry.get("approval_status", "pending"),
+        "planned_platform": entry.get("platform"),
+        "plan_date": plan_date,
+    }
 
 
 def build_posts_for_mode(shirts, theme_formats, content_formats, platform, rng, writer_mode, ai_model, run_context, pricing):

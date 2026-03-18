@@ -37,3 +37,13 @@ def update_post_index(output_path, destination, posts, platform):
     with index_path.open("w") as handle:
         json.dump(index, handle, indent=2)
         handle.write("\n")
+
+
+def write_daily_plan(plan, output_dir=Path("output")):
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    destination = output_path / f"daily_plan_{plan['plan_date']}.json"
+    with destination.open("w") as handle:
+        json.dump(plan, handle, indent=2)
+        handle.write("\n")
+    return destination

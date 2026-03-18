@@ -47,6 +47,7 @@ The main missing pieces are:
 - generic multi-platform publishing architecture
 - shirt-level promotion allow/block controls
 - a daily planner or scheduler layer
+- deployment and long-running host operations
 - audience targeting and demographic modeling
 - performance feedback and optimization loops
 
@@ -55,8 +56,9 @@ The main missing pieces are:
 1. Multi-platform publishing foundation
 2. Promotion eligibility and suppression controls
 3. Daily planner with posting and AI budget caps
-4. Audience modeling and targeted copy
-5. Trend inputs and closed-loop optimization
+4. Deployment and persistent host operations
+5. Audience modeling and targeted copy
+6. Trend inputs and closed-loop optimization
 
 ## Phase 1: Multi-Platform Foundation
 
@@ -170,7 +172,36 @@ The plan should list chosen shirts, platforms, generation mode, and estimated sp
 - Existing per-run budget guards are useful, but they are not enough on their own.
 - Budget enforcement should sit above generation in a planner, not only inside generation.
 
-## Phase 4: Audience Modeling and Targeted Copy
+## Phase 4: Deployment and Persistent Host Operations
+
+Goal: make ClawdBot run reliably on a dedicated machine without manual babysitting.
+
+### Deliverables
+
+- Define the production runtime for a small always-on host such as an old laptop.
+- Add a repeatable deploy setup for code checkout, Python environment, and config loading.
+- Run generation, planning, approval, and publish jobs through OS-level scheduling or a long-running service.
+- Ensure the process starts automatically after reboot.
+- Store state, logs, queues, outputs, and snapshots in stable local paths that survive restarts.
+- Load API secrets safely at boot without depending on an interactive shell session.
+- Add basic health monitoring so failures are visible.
+- Add backup guidance for state files and logs.
+
+### Suggested Host Setup
+
+- Python virtual environment for dependencies
+- `launchd` on macOS or `systemd` on Linux for persistent services
+- cron or scheduled jobs for daily planning and publishing windows
+- a dedicated logs directory
+- a small deploy/runbook in the repo
+
+### Notes
+
+- This phase is what turns the bot from a project you run manually into a service that stays alive.
+- Hosting should happen after the planner exists, so the deployed system has clear daily behavior to execute.
+- The first-pass Mac laptop deployment plan lives in `MAC_HOSTING_PLAN.md`.
+
+## Phase 5: Audience Modeling and Targeted Copy
 
 Goal: move from generic posting to audience-aware posting.
 
@@ -196,7 +227,7 @@ Goal: move from generic posting to audience-aware posting.
 - Start with deterministic audience matching from tags, theme, sub-theme, and overrides.
 - Do not start with AI trend hunting here. First build a clean, explainable audience model.
 
-## Phase 5: Trends and Optimization
+## Phase 6: Trends and Optimization
 
 Goal: improve targeting decisions using external signals and internal performance history.
 
@@ -272,9 +303,13 @@ ClawdBot can build and enforce a daily posting plan with hard limits on content 
 
 ### Milestone 4
 
-ClawdBot can target specific audiences with platform-aware copy.
+ClawdBot can run persistently on a dedicated host with automatic restart, scheduled jobs, and durable local state.
 
 ### Milestone 5
+
+ClawdBot can target specific audiences with platform-aware copy.
+
+### Milestone 6
 
 ClawdBot can use performance history and trends to prioritize what gets posted.
 
@@ -285,6 +320,7 @@ If we are choosing only one immediate work stream, it should be:
 1. add promotion override support
 2. refactor publishing into platform adapters
 3. add a daily planning layer
+4. package deployment for the dedicated host
 
 That sequence creates a stable base for everything else.
 

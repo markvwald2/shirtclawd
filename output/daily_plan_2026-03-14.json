@@ -1,0 +1,70 @@
+{
+  "plan_date": "2026-03-14",
+  "generated_at": "2026-03-14T14:25:11.191564+00:00",
+  "platforms_considered": [
+    "x",
+    "instagram",
+    "facebook",
+    "bluesky"
+  ],
+  "ai_model": "gpt-4o-mini",
+  "writer_mode": "auto",
+  "approval_required_by_default": true,
+  "constraints": {
+    "max_estimated_cost_usd": 1.0,
+    "repeat_avoidance": "prefer least recently promoted shirts",
+    "fill_schedule": true,
+    "allow_platform_skips": true
+  },
+  "estimates": {
+    "estimated_ai_cost_per_post_usd": 0.00033,
+    "estimated_total_ai_cost_usd": 0.00132,
+    "planned_capacity": 4
+  },
+  "planned_posts": [
+    {
+      "slot": 1,
+      "platform": "x",
+      "shirt_id": "5d89cbe0b4b8c76e3916d6e4",
+      "title": "Rocks The Potty",
+      "theme": "funny",
+      "writer_mode": "auto",
+      "approval_required": true,
+      "approval_status": "pending",
+      "estimated_ai_cost_usd": 0.00033
+    },
+    {
+      "slot": 2,
+      "platform": "instagram",
+      "shirt_id": "5d8e158b1361511e3eb8ed92",
+      "title": "Roger is My Copilot",
+      "theme": "movies",
+      "writer_mode": "auto",
+      "approval_required": true,
+      "approval_status": "pending",
+      "estimated_ai_cost_usd": 0.00033
+    },
+    {
+      "slot": 3,
+      "platform": "facebook",
+      "shirt_id": "5d89cc1fb4b8c76e3917085f",
+      "title": "Whip It",
+      "theme": "music",
+      "writer_mode": "auto",
+      "approval_required": true,
+      "approval_status": "pending",
+      "estimated_ai_cost_usd": 0.00033
+    },
+    {
+      "slot": 4,
+      "platform": "bluesky",
+      "shirt_id": "etsy_2613432644",
+      "title": "Coloradans Against Fourteeners",
+      "theme": "coloradans-against",
+      "writer_mode": "auto",
+      "approval_required": true,
+      "approval_status": "pending",
+      "estimated_ai_cost_usd": 0.00033
+    }
+  ]
+}

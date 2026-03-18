@@ -4,6 +4,9 @@ ClawdBot is a lightweight content pipeline for ShirtClawd. It syncs shirt invent
 
 The repo is intentionally small and file-based. Most state lives in JSON and JSONL files under `data/` and `output/`.
 
+For Mac laptop hosting, see `MAC_DEPLOYMENT.md`.
+For Instagram setup, see `INSTAGRAM_SETUP.md`.
+
 ## What It Does
 
 ClawdBot currently supports:
@@ -12,11 +15,13 @@ ClawdBot currently supports:
 - inventory normalization and validation
 - local annotation merge for approval-only promotion eligibility and reference context
 - promotion history tracking
+- daily planning with spend-aware platform selection
 - rule-based or AI-assisted post generation
 - platform-specific formatting for Instagram, Facebook, X, Bluesky, Reels, and TikTok
 - AI usage, latency, token, and cost logging
 - budget guards that force rule-based fallback
 - X approval queue management
+- Bluesky approval-gated publishing with image upload
 - dry-run and live publishing to X with image upload
 - a local dashboard for draft previews and usage metrics
 
@@ -29,7 +34,7 @@ ClawdBot does not currently:
 - maintain a feedback loop from post performance
 - discover trends or seasonal topics from external sources
 - edit or enrich product images
-- act as a full campaign planner or analytics system
+- act as a full analytics or optimization system
 
 ## Repo Layout
 
@@ -39,6 +44,7 @@ bot/
   approval_queue.py    File-based approval storage for X publishing
   data_loader.py       Inventory normalization, validation, dedupe
   inventory_sync.py    Remote inventory fetch, metadata, snapshots
+  planner.py           Daily planning and spend-aware platform selection
   post_generator.py    Rule-based post generation and platform formatting
   selector.py          Eligible shirt selection and promotion history helpers
   usage_logger.py      AI usage events, budget guards, run summaries
@@ -76,6 +82,23 @@ tests/
 
 ## Main Entry Points
 
+### Build Daily Plan
+
+```bash
+python plan_day.py
+```
+
+Useful flags:
+
+```bash
+python plan_day.py \
+  --platform x \
+  --platform instagram \
+  --platform facebook \
+  --platform bluesky \
+  --max-estimated-cost 1.0
+```
+
 ### Generate Posts
 
 ```bash
@@ -83,6 +106,13 @@ python generate_posts.py
 ```
 
 Useful flags:
+
+```bash
+python generate_posts.py \
+  --plan output/daily_plan_2026-03-14.json
+```
+
+Or continue to run a single platform directly:
 
 ```bash
 python generate_posts.py \
@@ -139,6 +169,28 @@ python publish_to_x.py --file output/posts_2026-03-10_x.json --index 0 --publish
 
 By default, live publishing requires a prior approval entry unless `--force` is used.
 
+Batch publish approved X posts:
+
+```bash
+python publish_approved_x_queue.py --publish
+```
+
+### Publish to Bluesky
+
+Dry run:
+
+```bash
+python publish_to_bluesky.py --file output/posts_2026-03-10_bluesky.json --index 0
+```
+
+Live publish:
+
+```bash
+python publish_to_bluesky.py --file output/posts_2026-03-10_bluesky.json --index 0 --publish
+```
+
+By default, live publishing requires a prior approval entry unless `--force` is used.
+
 ## Data Flow
 
 ClawdBot follows a simple pipeline:
@@ -147,13 +199,14 @@ ClawdBot follows a simple pipeline:
 2. Load and normalize inventory records from `data/shirt_inventory.json`.
 3. Merge local annotations from `data/shirt_annotations.json`.
 4. Load promotion history from `data/promotion_history.json`.
-5. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
-6. Generate copy using rule-based logic or OpenAI.
-7. Apply platform-specific formatting rules.
-8. Write the post batch and update `output/post_index.json`.
-9. Append promotion history entries.
-10. Log AI usage events and write a per-run summary.
-11. Optionally approve and publish individual X posts later.
+5. Build a daily plan that chooses platforms and shirts within the estimated AI spend limit.
+6. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
+7. Generate copy using rule-based logic or OpenAI.
+8. Apply platform-specific formatting rules.
+9. Write the post batch and update `output/post_index.json`.
+10. Append promotion history entries.
+11. Log AI usage events and write a per-run summary.
+12. Optionally approve and publish individual X posts later.
 
 ## Configuration
 
@@ -185,6 +238,7 @@ ClawdBot is file-based. Important files:
 - `data/x_approval_queue.json`: approved X posts
 - `data/ai_usage.jsonl`: per-attempt AI usage and fallback events
 - `data/x_publish_log.jsonl`: X dry-run and publish log
+- `output/daily_plan_YYYY-MM-DD.json`: daily platform and shirt selection plan
 - `output/posts_*.json`: generated post batches
 - `output/post_index.json`: small index used by the UI
 - `output/run_*_summary.json`: per-run aggregate metrics
@@ -206,6 +260,13 @@ Required for live publishing to X:
 - `X_API_KEY_SECRET`
 - `X_ACCESS_TOKEN`
 - `X_ACCESS_TOKEN_SECRET`
+
+### Bluesky Publishing
+
+Required for live publishing to Bluesky:
+
+- `BLUESKY_HANDLE`
+- `BLUESKY_APP_PASSWORD`
 
 ## Local Dashboard
 

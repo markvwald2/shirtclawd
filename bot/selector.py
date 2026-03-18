@@ -17,6 +17,9 @@ def load_history(path=DEFAULT_HISTORY_PATH):
 
 
 def select_shirts(inventory, history, count):
+    if count <= 0:
+        return []
+
     eligible = [
         shirt
         for shirt in inventory

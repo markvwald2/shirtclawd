@@ -1,0 +1,44 @@
+{
+  "run_id": "run_20260311T155950Z_9e65b500",
+  "started_at": "2026-03-11T15:59:50.351887+00:00",
+  "platform": "bluesky",
+  "writer_mode": "ai",
+  "ai_model": "gpt-4o-mini",
+  "requested_count": 10,
+  "limits": {
+    "max_ai_calls": 3,
+    "max_total_tokens": 12000,
+    "max_estimated_cost": 0.02
+  },
+  "generated_count": 10,
+  "ai_attempts": 10,
+  "ai_successes": 3,
+  "ai_fallbacks": 7,
+  "ai_errors": 0,
+  "input_tokens": 1702,
+  "output_tokens": 393,
+  "total_tokens": 2095,
+  "cached_tokens": 0,
+  "reasoning_tokens": 0,
+  "estimated_cost_usd": 0.000491,
+  "budget_state": {
+    "ai_calls": 3,
+    "total_tokens": 2095,
+    "estimated_cost_usd": 0.0004911,
+    "limit_triggered": "max_ai_calls=3"
+  },
+  "posts_by_writer_mode": {
+    "ai": 3,
+    "rule": 7
+  },
+  "posts_by_post_type": {
+    "social_media": 1,
+    "social": 1,
+    "ai_custom": 1,
+    "reference_flex": 2,
+    "spotlight": 1,
+    "curiosity": 2,
+    "insider_nod": 1,
+    "fan_identity": 1
+  }
+}
