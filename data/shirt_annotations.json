@@ -212,6 +212,305 @@
     ],
     "notes": ""
   },
+  "5d89cbe2162c5f464e735a5f": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A skiing-culture joke built on the idea that skiing in jeans is something only a clueless non-skier would do, so recommending it becomes an insult disguised as advice.",
+    "target_audience": [
+      "skiers",
+      "mountain-town sarcasm fans",
+      "people who like insider sports jokes"
+    ],
+    "tone": "snarky_insider",
+    "tone_notes": "Play it like a knowingly bad recommendation. The humor works because real skiers recognize immediately that this is uncool.",
+    "notes": ""
+  },
+  "5d89cbdef937647d81ff9696": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A mashup of the familiar Windows 'Ctrl + Alt + Delete' keyboard shortcut and the alt-country music genre, swapping 'Delete' for 'Country' to make a music-nerd tech pun.",
+    "target_audience": [
+      "alt-country fans",
+      "Americana fans",
+      "people who like tech puns"
+    ],
+    "tone": "clever_niche",
+    "tone_notes": "Keep it dry and a little nerdy. The joke lands best when treated like a neat crossover rather than overexplained.",
+    "notes": ""
+  },
+  "5d89cc026bbdbb2e6a46ab51": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A wordplay joke on the bragging format 'I put the X in Y,' using the silent B in 'subtle' to boast about being subtle even though the letter itself is already hidden.",
+    "target_audience": [
+      "wordplay fans",
+      "grammar joke fans",
+      "people who like dry, nerdy humor"
+    ],
+    "tone": "dry_wordplay",
+    "tone_notes": "Matter-of-fact and lightly smug. The joke works because the brag contradicts itself in a very understated way.",
+    "notes": ""
+  },
+  "5d89cc03b4b8c76e3916f406": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A gross-out Christmas parody of the 'Dirty Sanchez' slang term, turning it into 'Dirty Santa-Chez' and giving Santa a brown mustache for the visual punch line.",
+    "target_audience": [
+      "fans of crude humor",
+      "people who like shock-value wordplay",
+      "holiday parody fans"
+    ],
+    "tone": "gross_out",
+    "tone_notes": "Lean into the shamelessly juvenile shock of it. Keep the copy playful and irreverent rather than clinical.",
+    "notes": ""
+  },
+  "5d89cc30f937647d81ffc562": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A bathroom-humor gambling joke that mimics a casino craps table, but swaps in text and design cues suggesting someone has literally just crapped themselves.",
+    "target_audience": [
+      "bathroom humor fans",
+      "casino joke fans",
+      "people who like visual pun shirts"
+    ],
+    "tone": "juvenile_visual_pun",
+    "tone_notes": "Treat it like dumb, committed visual wordplay. The humor comes from recognizing the craps-table format and realizing how far the joke takes it.",
+    "notes": ""
+  },
+  "5d89cc3020517626420ddafa": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A movie reference to The Color of Money, where the main character Vince wears this shirt prominently while hustling and playing pool throughout the film.",
+    "target_audience": [
+      "The Color of Money fans",
+      "pool hall movie fans",
+      "Paul Newman and Tom Cruise movie fans"
+    ],
+    "tone": "movie_deep_cut",
+    "tone_notes": "Confident and specific, like a nod between people who know the film. Let the reference carry the appeal without overselling it.",
+    "notes": ""
+  },
+  "5d89cc2013615160bf6ed3ae": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A parody of the NBA logo, using the same red-and-blue sports branding style but replacing the basketball player silhouette with someone on a bike holding a rake, as if it stood for the fictional National Bike Jousting Association.",
+    "target_audience": [
+      "sports logo parody fans",
+      "people who like absurd fake sports jokes",
+      "bike humor fans"
+    ],
+    "tone": "absurd_sports_parody",
+    "tone_notes": "Play the fake-league premise straight. The joke lands because it looks official while describing a completely ridiculous sport.",
+    "notes": ""
+  },
+  "5d89cbe020517626420dade5": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A movie reference to Romancing the Stone, where El Tenedor del Diablo is a landmark on the treasure map that helps lead to the hidden jewel.",
+    "target_audience": [
+      "Romancing the Stone fans",
+      "80s adventure movie fans",
+      "obscure movie reference fans"
+    ],
+    "tone": "adventure_deep_cut",
+    "tone_notes": "Treat it like a knowing wink for people who remember the map and the treasure hunt. Specificity helps more than hype here.",
+    "notes": ""
+  },
+  "5d89cc14f937647d81ffb6f2": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A joke on the phrase 'See you later, alligator' that swaps in 'crocodile' instead, leaning on how people constantly confuse alligators and crocodiles; adding a sheep as a third unrelated animal pushes the absurdity even further.",
+    "target_audience": [
+      "absurd humor fans",
+      "animal pun fans",
+      "people who like deliberately wrong jokes"
+    ],
+    "tone": "absurd_phrase_twist",
+    "tone_notes": "Play up the committed wrongness of it. The joke is that the phrase is broken on purpose and then made even weirder.",
+    "notes": ""
+  },
+  "5d89cc1f1cbf3a25d594f159": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A bar-ordering joke that uses the phrase 'Make mine a...' but replaces a normal cocktail order with a Molotov cocktail, treating an incendiary weapon like a drink request.",
+    "target_audience": [
+      "dark humor fans",
+      "cocktail pun fans",
+      "people who like absurd violent wordplay"
+    ],
+    "tone": "dark_absurdist",
+    "tone_notes": "Deliver it like a casual drink order. The humor comes from how calmly it treats something nobody would ever actually order at a bar.",
+    "notes": ""
+  },
+  "5d89cc13b4b8c76e3917033d": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A deadpan archery joke that claims only 50% of archery is aiming, even though aiming is obviously most of the whole activity, leaving the reader to wonder what absurdly large missing half remains.",
+    "target_audience": [
+      "archery fans",
+      "deadpan humor fans",
+      "people who like deliberately bad logic jokes"
+    ],
+    "tone": "deadpan_absurdity",
+    "tone_notes": "Say it with total confidence. The joke works because the statement feels weirdly precise while making no real sense.",
+    "notes": ""
+  },
+  "5d89cc1213615160bf6ec860": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A gross wordplay twist on 'Caution: Wet Paint' that swaps in 'taint,' using the rhyme to turn a normal warning sign into a joke about a wet crotch.",
+    "target_audience": [
+      "gross-out humor fans",
+      "rhyme pun fans",
+      "people who like crude sign-parody jokes"
+    ],
+    "tone": "crude_wordplay",
+    "tone_notes": "Keep it punchy and juvenile. The joke works because it mimics a familiar warning exactly long enough to spring the vulgar swap.",
+    "notes": ""
+  },
+  "5d89cc026bbdbb2e6a46abac": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A reference to Fletch, where the main character abuses someone else's country club account and orders, 'I'll have a Bloody Mary, a steak sandwich, and a steak sandwich.'",
+    "target_audience": [
+      "Fletch fans",
+      "80s comedy fans",
+      "Chevy Chase movie fans"
+    ],
+    "tone": "movie_quote_deep_cut",
+    "tone_notes": "Treat it like a specific wink to people who know the scene. The fun is in the oddly exact order and the character's shamelessness.",
+    "notes": ""
+  },
+  "5d89cc021cbf3a25d594dacc": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A Monopoly-inspired joke on 'Community Chest,' turning the game term into a boob joke by placing chest icons over the breasts as if her chest is being shared with the whole community.",
+    "target_audience": [
+      "Monopoly fans",
+      "people who like sexual wordplay",
+      "fans of dumb double-entendre humor"
+    ],
+    "tone": "raunchy_wordplay",
+    "tone_notes": "Keep it playful and winkingly immature. The joke works because it starts from a familiar board-game phrase and immediately turns literal.",
+    "notes": ""
+  },
+  "5d89cbe01cbf3a25d594c3bf": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A joke that combines the map phrase 'You are here' with the phrase 'shit list,' so the reader's marked location is that they are currently on the wearer's shit list.",
+    "target_audience": [
+      "sarcastic humor fans",
+      "people who like hostile sign jokes",
+      "fans of phrase mashups"
+    ],
+    "tone": "snarky_hostile",
+    "tone_notes": "Keep it blunt and dry. The humor comes from turning a neutral wayfinding graphic into a petty personal insult.",
+    "notes": ""
+  },
+  "5d89cc1313615160bf6ec92e": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A fart joke built on the slang term 'cropdusting,' where someone walks through an area farting like a cropduster plane spraying a field; saying it out loud makes the usually sneaky act shamelessly explicit.",
+    "target_audience": [
+      "bathroom humor fans",
+      "people who like crude slang jokes",
+      "fans of shameless juvenile humor"
+    ],
+    "tone": "shameless_gross_out",
+    "tone_notes": "Lean into the brazen admission. The joke works because it's normally something done secretly, but the shirt announces it proudly.",
+    "notes": ""
+  },
+  "5d89cc3020517626420ddb2e": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A political-insult joke aimed at demands to teach the Bible in science class, arguing by analogy that Aesop's Fables would make just as much sense there since both are non-scientific stories with moral lessons and fantastical elements.",
+    "target_audience": [
+      "political satire fans",
+      "secular education advocates",
+      "people who like argumentative slogan shirts"
+    ],
+    "tone": "pointed_satire",
+    "tone_notes": "Keep it sharp and skeptical rather than preachy. The joke works by exposing the inconsistency through an obviously absurd comparison.",
+    "notes": ""
+  },
+  "5d89cbf213615160bf6eb374": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A literary twist on the Glengarry Glen Ross line 'Coffee is for closers,' swapping coffee for Franz Kafka to make a dry joke about high-pressure sales swagger colliding with serious 20th-century literature.",
+    "target_audience": [
+      "Glengarry Glen Ross fans",
+      "literary humor fans",
+      "people who like smart pop-culture mashups"
+    ],
+    "tone": "dry_lit_reference",
+    "tone_notes": "Play it as a smart, understated mashup. The joke works best when it sounds like a line that should almost make sense.",
+    "notes": ""
+  },
+  "5d8e1581b4b8c76220050334": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A double-entendre joke on 'knowing someone in the biblical sense,' which can mean having sex with them; applying that phrase to Jesus sounds innocent at first because he appears throughout the Bible, but the alternate meaning makes it absurdly inappropriate.",
+    "target_audience": [
+      "people who like irreverent religious humor",
+      "double-entendre fans",
+      "fans of taboo wordplay"
+    ],
+    "tone": "irreverent_double_entendre",
+    "tone_notes": "Keep it dry and let the layered meaning do the work. The joke lands because the phrase sounds harmless until the second meaning clicks.",
+    "notes": ""
+  },
+  "5d89cc13162c5f464e738725": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A Spanglish twist on the phrase 'There's no I in team,' swapping in the Spanish word 'yo' to make a bilingual version of the same joke.",
+    "target_audience": [
+      "wordplay fans",
+      "people who like bilingual jokes",
+      "fans of simple phrase twists"
+    ],
+    "tone": "light_wordplay",
+    "tone_notes": "Keep it breezy and straightforward. The joke is simple and lands from the quick Spanglish substitution.",
+    "notes": ""
+  },
+  "5d89cc041cbf3a25d594dcaf": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A parody of The North Face logo that swaps 'North' for 'Gas,' combining the outdoor-brand look with the slang term 'the gas face,' a disgusted or disrespectful expression showing strong disapproval.",
+    "target_audience": [
+      "logo parody fans",
+      "hip-hop slang fans",
+      "people who like disrespectful humor"
+    ],
+    "tone": "streetwise_logo_parody",
+    "tone_notes": "Keep it confident and a little dismissive. The joke works because the familiar brand format makes the slang hit harder.",
+    "notes": ""
+  },
+  "5d89cc126bbdbb2e6a46b6a5": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A dark joke built around the clinical term 'priapism,' with the tagline 'What's all the excitement about?' using 'excitement' as a euphemism for sexual arousal while pretending the situation is much more casual than it obviously is.",
+    "target_audience": [
+      "fans of dark sexual humor",
+      "people who like clinical-word crude jokes",
+      "taboo humor fans"
+    ],
+    "tone": "dark_clinical_wordplay",
+    "tone_notes": "Keep it dry and understated. The joke works because the clinical term and euphemistic tagline both downplay something that is obviously sexual, awkward, and urgent.",
+    "notes": ""
+  },
+  "5d89cc20162c5f464e739133": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A movie reference to Any Which Way but Loose, where Clint Eastwood's pet orangutan Clyde sticks his arm out the window to signal a right turn, turning a normal driving gesture into a weirdly memorable visual gag.",
+    "target_audience": [
+      "Clint Eastwood fans",
+      "Any Which Way but Loose fans",
+      "obscure movie reference fans"
+    ],
+    "tone": "movie_deep_cut",
+    "tone_notes": "Treat it like a fond, specific callback. The humor comes from how oddly memorable and ridiculous the Clyde turn-signal bit is.",
+    "notes": ""
+  },
   "5d89cc02162c5f464e7370e3": {
     "promotion_status": "promote",
     "is_promotable": true,
