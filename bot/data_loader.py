@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 DEFAULT_INVENTORY_PATH = Path("data/shirt_inventory.json")
 DEFAULT_ANNOTATIONS_PATH = Path("data/shirt_annotations.json")
 REQUIRED_FIELDS = ("shirt_id", "title", "url", "image_url")
+CANONICAL_STOREFRONT_URL = "https://www.thirdstringshirts.com/shop.html#!/"
 
 
 def load_inventory(path=DEFAULT_INVENTORY_PATH, annotations_path=DEFAULT_ANNOTATIONS_PATH):
@@ -67,7 +69,7 @@ def load_annotations(path=DEFAULT_ANNOTATIONS_PATH):
 def normalize_record(record, annotation=None):
     annotation = annotation or {}
     title = first_value(record, "title", "shirt_name", "name")
-    url = first_value(record, "url", "product_url")
+    url = canonicalize_product_url(first_value(record, "url", "product_url"))
     status = str(record.get("status", "available")).strip().lower() or "available"
     tags = normalize_tags(record.get("tags"))
     target_audience = normalize_tags(annotation.get("target_audience"))
@@ -89,6 +91,26 @@ def normalize_record(record, annotation=None):
         "tone_notes": annotation.get("tone_notes", ""),
         "notes": annotation.get("notes", ""),
     }
+
+
+def canonicalize_product_url(url):
+    text = str(url or "").strip()
+    if not text:
+        return ""
+
+    parsed = urlparse(text)
+    hostname = (parsed.hostname or "").lower()
+    if "myspreadshop." not in hostname:
+        return text
+
+    slug = parsed.path.lstrip("/")
+    if not slug:
+        return text
+
+    query = parsed.query
+    if query:
+        return f"{CANONICAL_STOREFRONT_URL}{slug}?{query}"
+    return f"{CANONICAL_STOREFRONT_URL}{slug}"
 
 
 def first_value(record, *keys):

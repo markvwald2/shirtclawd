@@ -1,0 +1,36 @@
+{
+  "run_id": "run_20260322T200111Z_671ebf84",
+  "started_at": "2026-03-22T20:01:11.600370+00:00",
+  "platform": "instagram",
+  "writer_mode": "ai",
+  "ai_model": "gpt-4o-mini",
+  "requested_count": 3,
+  "limits": {
+    "max_ai_calls": 3,
+    "max_total_tokens": 12000,
+    "max_estimated_cost": 0.02
+  },
+  "generated_count": 3,
+  "ai_attempts": 3,
+  "ai_successes": 3,
+  "ai_fallbacks": 0,
+  "ai_errors": 0,
+  "input_tokens": 1860,
+  "output_tokens": 433,
+  "total_tokens": 2293,
+  "cached_tokens": 0,
+  "reasoning_tokens": 0,
+  "estimated_cost_usd": 0.000539,
+  "budget_state": {
+    "ai_calls": 3,
+    "total_tokens": 2293,
+    "estimated_cost_usd": 0.0005388,
+    "limit_triggered": "max_ai_calls=3"
+  },
+  "posts_by_writer_mode": {
+    "ai": 3
+  },
+  "posts_by_post_type": {
+    "ai_custom": 3
+  }
+}

@@ -3,6 +3,8 @@ from pathlib import Path
 
 
 DEFAULT_HISTORY_PATH = Path("data/promotion_history.json")
+RECENT_SHIRT_COOLDOWN = 12
+RECENT_THEME_WINDOW = 12
 
 
 def load_history(path=DEFAULT_HISTORY_PATH):
@@ -31,9 +33,13 @@ def select_shirts(inventory, history, count):
         return []
 
     recency_map = build_recency_map(history)
+    recent_shirt_ids = build_recent_shirt_ids(history, RECENT_SHIRT_COOLDOWN)
+    recent_theme_counts = build_recent_theme_counts(history, eligible, RECENT_THEME_WINDOW)
     ranked = sorted(
         eligible,
         key=lambda shirt: (
+            shirt["shirt_id"] in recent_shirt_ids,
+            recent_theme_counts.get(normalize_theme(shirt.get("theme", "")), 0),
             recency_map.get(shirt["shirt_id"], -1),
             len(shirt.get("tags", [])),
             shirt["title"].lower(),
@@ -79,3 +85,36 @@ def build_recency_map(history):
         if shirt_id:
             recency_map[shirt_id] = index
     return recency_map
+
+
+def build_recent_shirt_ids(history, limit):
+    recent = []
+    for entry in reversed(history):
+        shirt_id = str(entry.get("shirt_id") or "").strip()
+        if shirt_id and shirt_id not in recent:
+            recent.append(shirt_id)
+        if len(recent) == limit:
+            break
+    return set(recent)
+
+
+def build_recent_theme_counts(history, inventory, limit):
+    inventory_by_id = {shirt["shirt_id"]: shirt for shirt in inventory}
+    counts = {}
+    seen_entries = 0
+    for entry in reversed(history):
+        shirt_id = str(entry.get("shirt_id") or "").strip()
+        shirt = inventory_by_id.get(shirt_id)
+        if not shirt:
+            continue
+        theme = normalize_theme(shirt.get("theme", ""))
+        if theme:
+            counts[theme] = counts.get(theme, 0) + 1
+        seen_entries += 1
+        if seen_entries == limit:
+            break
+    return counts
+
+
+def normalize_theme(theme):
+    return str(theme or "").strip().lower()

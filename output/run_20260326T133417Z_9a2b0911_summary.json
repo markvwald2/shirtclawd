@@ -1,0 +1,38 @@
+{
+  "run_id": "run_20260326T133417Z_9a2b0911",
+  "started_at": "2026-03-26T13:34:17.256342+00:00",
+  "platform": "x",
+  "writer_mode": "rule",
+  "ai_model": "gpt-4o-mini",
+  "requested_count": 3,
+  "limits": {
+    "max_ai_calls": 3,
+    "max_total_tokens": 12000,
+    "max_estimated_cost": 0.02
+  },
+  "generated_count": 3,
+  "ai_attempts": 0,
+  "ai_successes": 0,
+  "ai_fallbacks": 0,
+  "ai_errors": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "total_tokens": 0,
+  "cached_tokens": 0,
+  "reasoning_tokens": 0,
+  "estimated_cost_usd": 0,
+  "budget_state": {
+    "ai_calls": 0,
+    "total_tokens": 0,
+    "estimated_cost_usd": 0.0,
+    "limit_triggered": null
+  },
+  "posts_by_writer_mode": {
+    "rule": 3
+  },
+  "posts_by_post_type": {
+    "reference_flex": 1,
+    "curiosity": 1,
+    "fan_identity": 1
+  }
+}

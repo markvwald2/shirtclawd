@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import re
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -68,18 +70,24 @@ TONE_EXAMPLES = {
         }
     ],
 }
+STYLE_VARIATION_HINTS = [
+    "Use a different opening move than generic merch copy. Avoid defaulting to 'Because...' or 'Ever wanted...' unless it is genuinely strongest.",
+    "Vary sentence rhythm and structure. Avoid sounding like the same template with new nouns swapped in.",
+    "Lean into one sharp angle rather than stacking multiple weak ones. Distinctiveness matters more than completeness.",
+    "Let the reference or joke land in a fresh way. Avoid repeating the same cadence you might use for another shirt in this batch.",
+]
 
 
 class AIWriterError(RuntimeError):
     pass
 
 
-def generate_post_components(shirt, platform, api_key=None, model=DEFAULT_AI_MODEL, timeout=45):
+def generate_post_components(shirt, platform, api_key=None, model=DEFAULT_AI_MODEL, timeout=45, recent_posts=None):
     resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
     if not resolved_api_key:
         raise AIWriterError("OPENAI_API_KEY is not set.")
 
-    prompt = build_user_prompt(shirt, platform)
+    prompt = build_user_prompt(shirt, platform, recent_posts=recent_posts)
     payload = {
         "model": model,
         "input": [
@@ -143,14 +151,24 @@ def generate_post_components(shirt, platform, api_key=None, model=DEFAULT_AI_MOD
     return parse_response(raw_response)
 
 
-def build_user_prompt(shirt, platform):
+def build_user_prompt(shirt, platform, recent_posts=None):
     tone = str(shirt.get("tone", "")).strip()
     theme = str(shirt.get("theme", "")).strip()
+    variation_hint = random.choice(STYLE_VARIATION_HINTS)
+    platform_url_guidance = {
+        "instagram": (
+            "Do not include a raw URL in the caption. Avoid stock CTA wording. "
+            "If a call to action helps, vary the phrasing and do not repeat 'link in bio'."
+        ),
+        "bluesky": "Do not rely on a pasted raw URL in the caption. Write clean copy; the publisher will attach the destination separately.",
+    }
+    repetition_guidance = build_repetition_guidance(platform, recent_posts or [])
     return json.dumps(
         {
             "task": "Generate one JSON social post.",
             "platform": platform,
             "brand_voice": DEFAULT_BRAND_VOICE,
+            "variation_hint": variation_hint,
             "theme_tone_guidance": THEME_TONE_GUIDANCE.get(theme, ""),
             "tone_preset": {
                 "name": tone,
@@ -178,8 +196,10 @@ def build_user_prompt(shirt, platform):
                 "Keep hashtags relevant and concise.",
                 "Use the reference summary and target audience when they are provided.",
                 "Use the brand voice, theme tone guidance, tone preset, and tone notes when they are provided.",
+                "Honor the variation hint so the writing does not feel repetitive from post to post.",
                 "Favor dry specificity over cheerful sales copy.",
-                "Include the product URL in the caption.",
+                platform_url_guidance.get(platform, "Include the product URL in the caption."),
+                repetition_guidance,
                 "Return JSON only."
             ]
         }
@@ -230,3 +250,34 @@ def validate_components(parsed):
             continue
         if not isinstance(value, str) or not value.strip():
             raise AIWriterError(f"OpenAI response field {key} was missing or invalid.")
+
+
+def build_repetition_guidance(platform, recent_posts):
+    if not recent_posts:
+        return "Avoid repeated CTA phrases and duplicate hashtag blocks."
+
+    recent_ctas = []
+    recent_hashtag_combos = []
+    for post in recent_posts[:5]:
+        caption = str(post.get("caption", "")).strip()
+        hashtags = [str(tag).strip() for tag in post.get("hashtags", []) if str(tag).strip()]
+        if caption:
+            recent_ctas.append(summarize_recent_post(caption))
+        if hashtags:
+            recent_hashtag_combos.append(hashtags)
+
+    message = [
+        "Avoid repeating CTA phrases or hashtag sets from these recent posts."
+    ]
+    if platform == "instagram":
+        message.append("Do not use 'link in bio' more than once, and prefer a fresh CTA when possible.")
+    if recent_ctas:
+        message.append(f"Recent caption examples to avoid echoing: {recent_ctas[:3]}.")
+    if recent_hashtag_combos:
+        message.append(f"Recent hashtag combos to avoid repeating exactly: {recent_hashtag_combos[:3]}.")
+    return " ".join(message)
+
+
+def summarize_recent_post(text):
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    return cleaned[:180]

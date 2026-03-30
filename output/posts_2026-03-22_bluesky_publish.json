@@ -1,0 +1,56 @@
+[
+  {
+    "shirt_id": "5d89cc1313615160bf6ec92e",
+    "title": "I'm Cropdusting",
+    "headline": "I'm Cropdusting",
+    "caption": "Some shirts ask for subtle appreciation. This one announces the bit from across the room. I'm Cropdusting. https://www.thirdstringshirts.com/shop.html#!/i'm+cropdusting?idea=5d89cc1313615160bf6ec92e #FunnyShirts #FartHumor",
+    "hashtags": [
+      "#FunnyShirts",
+      "#FartHumor"
+    ],
+    "alt_text": "Funny t-shirt design reading 'I'm Cropdusting', featuring a playful fart joke.",
+    "image_url": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T812A812PA4267PT17X70Y117D10512004W20637H5307/views/1,width=500,height=500,appearanceId=812,backgroundColor=ffffff/im-cropdusting-mens-premium-t-shirt.jpg",
+    "url": "https://www.thirdstringshirts.com/shop.html#!/i'm+cropdusting?idea=5d89cc1313615160bf6ec92e",
+    "post_type": "deadpan",
+    "theme": "funny",
+    "priority": 2,
+    "platform": "bluesky",
+    "writer_mode": "manual"
+  },
+  {
+    "shirt_id": "etsy_2598077934",
+    "title": "Coloradans Against Hiking",
+    "headline": "Coloradans Against Hiking",
+    "caption": "Not every Colorado hobby needs to become a personality. Coloradans Against Hiking is for the anti-summit constituency. https://www.etsy.com/listing/874967110/coloradans-against-hiking-t-shirt #ColoradansAgainst #ColoradoHumor",
+    "hashtags": [
+      "#ColoradansAgainst",
+      "#ColoradoHumor"
+    ],
+    "alt_text": "Coloradans Against Hiking shirt with dry anti-hiking Colorado humor.",
+    "image_url": "file:///tmp/coloradans-against-hiking-small.jpg",
+    "url": "https://www.etsy.com/listing/874967110/coloradans-against-hiking-t-shirt",
+    "post_type": "series_identity",
+    "theme": "coloradans-against",
+    "priority": 2,
+    "platform": "bluesky",
+    "writer_mode": "manual"
+  },
+  {
+    "shirt_id": "5d89cbe2162c5f464e735a5f",
+    "title": "Ski in your Jeans",
+    "headline": "Ski in your Jeans",
+    "caption": "A shirt for people who understand that confidence and poor judgment sometimes share a chairlift. Ski in your Jeans. https://www.thirdstringshirts.com/shop.html#!/ski+in+your+jeans?idea=5d89cbe2162c5f464e735a5f #SkiCulture #FunnyShirts",
+    "hashtags": [
+      "#SkiCulture",
+      "#FunnyShirts"
+    ],
+    "alt_text": "A t-shirt featuring the phrase 'Ski in your Jeans' with a humorous design, aimed at skiers who love a good joke.",
+    "image_url": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T175A4PA4927PT17X67Y45D12226906W15255H15255/views/1,width=500,height=500,appearanceId=4,backgroundColor=ffffff/ski-in-your-jeans.jpg",
+    "url": "https://www.thirdstringshirts.com/shop.html#!/ski+in+your+jeans?idea=5d89cbe2162c5f464e735a5f",
+    "post_type": "fan_identity",
+    "theme": "sports",
+    "priority": 2,
+    "platform": "bluesky",
+    "writer_mode": "manual"
+  }
+]

@@ -1,6 +1,10 @@
 import json
 import mimetypes
 import os
+import re
+import shutil
+import subprocess
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -14,6 +18,8 @@ UPLOAD_BLOB_URL = f"{BLUESKY_BASE_URL}/xrpc/com.atproto.repo.uploadBlob"
 DEFAULT_PUBLISH_LOG_PATH = Path("data/bluesky_publish_log.jsonl")
 DEFAULT_BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE", "replace-me.bsky.social")
 MAX_POST_LENGTH = 300
+MAX_BLOB_BYTES = 950_000
+BLUESKY_RESIZE_WIDTHS = (1600, 1200, 900, 700, 500)
 
 
 class BlueskyPublisherError(RuntimeError):
@@ -83,14 +89,19 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
     resolved_credentials = credentials or load_credentials()
     session = create_session(resolved_credentials)
     blob = None
+    external_embed = None
     if post.get("image_url"):
         image_bytes, mime_type = download_image(post["image_url"])
+        image_bytes, mime_type = optimize_image_for_bluesky(image_bytes, mime_type)
         blob = upload_blob(image_bytes, mime_type, session["accessJwt"])
+    if post.get("url"):
+        external_embed = build_external_embed(post, blob=blob)
     response = create_post(
         text=text,
         did=session["did"],
         access_jwt=session["accessJwt"],
-        blob=blob,
+        blob=blob if not external_embed else None,
+        external_embed=external_embed,
     )
     event = {
         "logged_at": utc_now_iso(),
@@ -108,14 +119,13 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
 
 
 def build_bluesky_status(post, max_length=MAX_POST_LENGTH):
-    caption = (post.get("caption") or "").strip()
+    caption = strip_urls(post.get("caption") or "").strip()
     if len(caption) <= max_length:
         return caption
 
     headline = (post.get("headline") or post.get("title") or "").strip()
-    url = (post.get("url") or "").strip()
     hashtags = " ".join(post.get("hashtags") or [])
-    compact = " ".join(part for part in [headline, url, hashtags] if part)
+    compact = " ".join(part for part in [headline, hashtags] if part)
     if len(compact) <= max_length:
         return compact
     return trim_text(caption, max_length)
@@ -127,6 +137,14 @@ def trim_text(text, limit):
     if limit <= 1:
         return text[:limit]
     return text[: limit - 1].rstrip() + "…"
+
+
+def strip_urls(text):
+    stripped = re.sub(r"https?://\S+", "", str(text or ""), flags=re.IGNORECASE)
+    stripped = re.sub(r"[ \t]+", " ", stripped)
+    stripped = re.sub(r" *\n *", "\n", stripped)
+    stripped = re.sub(r"\n{3,}", "\n\n", stripped)
+    return stripped.strip()
 
 
 def create_session(credentials):
@@ -144,13 +162,15 @@ def create_session(credentials):
     return response
 
 
-def create_post(text, did, access_jwt, blob=None):
+def create_post(text, did, access_jwt, blob=None, external_embed=None):
     record = {
         "$type": "app.bsky.feed.post",
         "text": text,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
-    if blob:
+    if external_embed:
+        record["embed"] = external_embed
+    elif blob:
         record["embed"] = {
             "$type": "app.bsky.embed.images",
             "images": [
@@ -177,6 +197,21 @@ def create_post(text, did, access_jwt, blob=None):
     if not response.get("uri"):
         raise BlueskyPublisherError(f"Unexpected Bluesky createRecord response: {response}")
     return response
+
+
+def build_external_embed(post, blob=None):
+    description = trim_text(strip_urls(post.get("caption") or post.get("headline") or ""), 280)
+    external = {
+        "uri": post.get("url"),
+        "title": (post.get("headline") or post.get("title") or "Third String Shirts").strip(),
+        "description": description,
+    }
+    if blob:
+        external["thumb"] = blob
+    return {
+        "$type": "app.bsky.embed.external",
+        "external": external,
+    }
 
 
 def upload_blob(image_bytes, mime_type, access_jwt):
@@ -242,6 +277,60 @@ def download_image(image_url):
 
     mime_type = content_type or mimetypes.guess_type(image_url)[0] or "image/jpeg"
     return payload, mime_type
+
+
+def optimize_image_for_bluesky(image_bytes, mime_type, max_bytes=MAX_BLOB_BYTES):
+    if len(image_bytes) <= max_bytes:
+        return image_bytes, mime_type
+
+    optimized = resize_image_with_sips(image_bytes, mime_type, max_bytes=max_bytes)
+    if optimized:
+        return optimized
+    return image_bytes, mime_type
+
+
+def resize_image_with_sips(image_bytes, mime_type, max_bytes=MAX_BLOB_BYTES):
+    sips_path = shutil.which("sips")
+    if not sips_path:
+        return None
+
+    source_suffix = suffix_for_mime_type(mime_type)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = Path(tmpdir) / f"source{source_suffix}"
+        input_path.write_bytes(image_bytes)
+
+        current_path = input_path
+        for width in BLUESKY_RESIZE_WIDTHS:
+            output_path = Path(tmpdir) / f"scaled-{width}.jpg"
+            command = [
+                sips_path,
+                "-s",
+                "format",
+                "jpeg",
+                "-Z",
+                str(width),
+                str(current_path),
+                "--out",
+                str(output_path),
+            ]
+            try:
+                subprocess.run(command, check=True, capture_output=True)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                return None
+
+            optimized_bytes = output_path.read_bytes()
+            if len(optimized_bytes) <= max_bytes:
+                return optimized_bytes, "image/jpeg"
+            current_path = output_path
+
+    return None
+
+
+def suffix_for_mime_type(mime_type):
+    guessed = mimetypes.guess_extension(mime_type or "")
+    if guessed:
+        return guessed
+    return ".img"
 
 
 def log_publish_event(event, path=DEFAULT_PUBLISH_LOG_PATH):

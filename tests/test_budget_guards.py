@@ -13,7 +13,7 @@ from bot.usage_logger import create_run_context
 
 
 class BudgetGuardTests(unittest.TestCase):
-    def test_budget_guard_forces_rule_fallback_before_ai_attempt(self):
+    def test_budget_guard_stops_generation_before_ai_attempt(self):
         shirts = [
             {
                 "shirt_id": "abc123",
@@ -27,26 +27,24 @@ class BudgetGuardTests(unittest.TestCase):
         ]
         run_context = create_run_context(
             "x",
-            "auto",
+            "ai",
             "gpt-4o-mini",
             1,
             max_ai_calls=0,
         )
 
-        posts, usage_events = GENERATE_POSTS.build_posts_for_mode(
-            shirts=shirts,
-            theme_formats=load_theme_formats(),
-            content_formats=load_content_formats(),
-            platform="x",
-            rng=random_source(7),
-            writer_mode="auto",
-            ai_model="gpt-4o-mini",
-            run_context=run_context,
-            pricing={},
-        )
-
-        self.assertEqual(posts[0]["writer_mode"], "rule")
-        self.assertEqual(usage_events[0]["status"], "budget_fallback")
+        with self.assertRaises(SystemExit):
+            GENERATE_POSTS.build_posts_for_mode(
+                shirts=shirts,
+                theme_formats=load_theme_formats(),
+                content_formats=load_content_formats(),
+                platform="x",
+                rng=random_source(7),
+                writer_mode="ai",
+                ai_model="gpt-4o-mini",
+                run_context=run_context,
+                pricing={},
+            )
 
 
 if __name__ == "__main__":

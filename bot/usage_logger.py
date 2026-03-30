@@ -80,9 +80,9 @@ def build_usage_event(run_context, shirt, platform, model, writer_mode, status, 
 
 
 def build_run_summary(run_context, posts, usage_events):
-    ai_events = [event for event in usage_events if event["status"] in {"success", "fallback", "error", "budget_fallback"}]
+    ai_events = [event for event in usage_events if event["status"] in {"success", "error", "budget_exceeded"}]
     success_events = [event for event in usage_events if event["status"] == "success"]
-    fallback_events = [event for event in usage_events if event["status"] in {"fallback", "budget_fallback"}]
+    fallback_events = []
     error_events = [event for event in usage_events if event["status"] == "error"]
 
     return {

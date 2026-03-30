@@ -45,8 +45,10 @@ class PlannerTests(unittest.TestCase):
 
         self.assertEqual([post["shirt_id"] for post in plan["planned_posts"]], ["2", "4", "3", "1"])
         self.assertTrue(all(post["approval_required"] for post in plan["planned_posts"]))
+        self.assertTrue(all(post["writer_mode"] == "ai" for post in plan["planned_posts"]))
         self.assertEqual(plan["planned_posts"][0]["platform"], "x")
         self.assertEqual(plan["planned_posts"][-1]["platform"], "bluesky")
+        self.assertEqual(plan["writer_mode"], "ai")
 
     def test_build_daily_plan_can_yield_zero_posts_when_budget_covers_none(self):
         inventory = [

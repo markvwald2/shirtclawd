@@ -1,0 +1,36 @@
+{
+  "run_id": "run_20260323T015217Z_ccfe161f",
+  "started_at": "2026-03-23T01:52:17.848873+00:00",
+  "platform": "bluesky",
+  "writer_mode": "ai",
+  "ai_model": "gpt-4o-mini",
+  "requested_count": 1,
+  "limits": {
+    "max_ai_calls": 3,
+    "max_total_tokens": 12000,
+    "max_estimated_cost": 0.02
+  },
+  "generated_count": 1,
+  "ai_attempts": 1,
+  "ai_successes": 1,
+  "ai_fallbacks": 0,
+  "ai_errors": 0,
+  "input_tokens": 614,
+  "output_tokens": 140,
+  "total_tokens": 754,
+  "cached_tokens": 0,
+  "reasoning_tokens": 0,
+  "estimated_cost_usd": 0.000176,
+  "budget_state": {
+    "ai_calls": 1,
+    "total_tokens": 754,
+    "estimated_cost_usd": 0.0001761,
+    "limit_triggered": null
+  },
+  "posts_by_writer_mode": {
+    "ai": 1
+  },
+  "posts_by_post_type": {
+    "shirt_post": 1
+  }
+}

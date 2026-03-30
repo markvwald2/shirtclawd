@@ -1,6 +1,6 @@
 # Instagram Setup
 
-This checklist covers the remaining setup required before ShirtClawd can publish to Instagram.
+This checklist covers the remaining setup required before ShirtClawd can publish live to Instagram.
 
 ## Recommended API Path
 
@@ -17,7 +17,7 @@ If your Instagram account is already linked to a Facebook Page, that is fine, bu
 
 ## What You Need
 
-Before coding the Instagram publisher, you need:
+Before live publishing will work, you need:
 
 1. A professional Instagram account
 2. A Meta developer app
@@ -67,21 +67,28 @@ You will likely also need the basic read scope:
 
 - `instagram_business_basic`
 
-## What We Will Build After Setup
+## Implemented In Repo
 
-Once the Meta app and token are ready, the repo work is straightforward:
+The repo now includes:
 
-1. Add `bot/instagram_publisher.py`
-2. Add `publish_to_instagram.py`
-3. Add approval-gated publishing like X and Bluesky
-4. Add tests and Mac runner support
+1. `bot/instagram_publisher.py`
+2. `publish_to_instagram.py`
+3. Tests for dry-run behavior and caption handling
+
+Current scope is:
+
+- single-image feed posts only
+- dry-run and live CLI support
+- no approval queue yet
+
+The main remaining blocker is valid Meta auth.
 
 ## Notes
 
 - Do not use a personal-only Instagram account.
 - Creator is okay.
 - Business is okay.
-- Stories have different limitations than feed posts, so v1 should target feed posts only.
+- Stories have different limitations than feed posts, so v1 targets feed posts only.
 
 ## Sources
 

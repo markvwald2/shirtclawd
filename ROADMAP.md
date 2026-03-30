@@ -7,6 +7,9 @@ It is meant to answer two questions:
 - what are we trying to build?
 - what should we build next, in what order?
 
+The current exposure and audience-growth strategy is documented separately in `MARKETING_STRATEGY.md`.
+That document establishes the present go-to-market thesis, including `Coloradans Against` as the primary audience beachhead.
+
 ## Target End State
 
 The desired long-term flow is:
@@ -15,6 +18,7 @@ The desired long-term flow is:
 2. Respect explicit business judgment about which shirts should and should not be promoted.
 3. Match shirts, copy, and platforms to specific audiences or demographics.
 4. Operate within daily posting and AI budget limits while maximizing marketing value.
+5. Grow a recognizable audience lane that can convert attention into an owned subscriber base.
 
 ## Planning Principles
 
@@ -27,6 +31,9 @@ ClawdBot should not attempt trend detection or audience targeting until the foll
 - daily planning and budget enforcement
 
 Without those layers, the bot will optimize against the wrong inventory and inconsistent delivery channels.
+
+Product work should also stay anchored to a clear marketing lane.
+At the current stage, the default lane is the `Coloradans Against` series because it is the strongest built-in candidate for recurring, community-native distribution.
 
 ## Current State
 
@@ -226,6 +233,7 @@ Goal: move from generic posting to audience-aware posting.
 
 - Start with deterministic audience matching from tags, theme, sub-theme, and overrides.
 - Do not start with AI trend hunting here. First build a clean, explainable audience model.
+- The first audience-specific implementation target should support the `Coloradans Against` series as a reusable campaign lane, not just one-off shirt selection.
 
 ## Phase 6: Trends and Optimization
 

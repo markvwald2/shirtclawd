@@ -2,78 +2,12 @@ import unittest
 
 from bot.post_generator import (
     build_ai_post,
-    build_posts,
     load_content_formats,
-    load_theme_formats,
     random_source,
 )
 
 
 class PostGeneratorTests(unittest.TestCase):
-    def test_build_posts_applies_platform_rules(self):
-        shirts = [
-            {
-                "shirt_id": "abc123",
-                "title": "Addison CTA Blue Line",
-                "url": "https://example.com/addison",
-                "image_url": "https://example.com/addison.jpg",
-                "theme": "transportation",
-                "sub_theme": "CTA stops",
-                "tags": ["transportation", "cta", "chicago"],
-            }
-        ]
-
-        posts = build_posts(
-            shirts,
-            load_theme_formats(),
-            load_content_formats(),
-            "x",
-            random_source(7),
-        )
-
-        self.assertEqual(len(posts), 1)
-        self.assertEqual(posts[0]["platform"], "x")
-        self.assertLessEqual(len(posts[0]["hashtags"]), 2)
-        self.assertIn("Reply if you get the reference.", posts[0]["caption"])
-        self.assertIn("#thirdstringshirts", posts[0]["caption"])
-
-    def test_build_posts_supports_new_platform_rules(self):
-        shirts = [
-            {
-                "shirt_id": "abc123",
-                "title": "Addison CTA Blue Line",
-                "url": "https://example.com/addison",
-                "image_url": "https://example.com/addison.jpg",
-                "theme": "transportation",
-                "sub_theme": "CTA stops",
-                "tags": ["transportation", "cta", "chicago", "trains", "city"],
-            }
-        ]
-
-        posts = build_posts(
-            shirts,
-            load_theme_formats(),
-            load_content_formats(),
-            "bluesky",
-            random_source(7),
-        )
-
-        self.assertEqual(posts[0]["platform"], "bluesky")
-        self.assertLessEqual(len(posts[0]["hashtags"]), 2)
-        self.assertIn("Tell us if the reference lands.", posts[0]["caption"])
-
-        tiktok_posts = build_posts(
-            shirts,
-            load_theme_formats(),
-            load_content_formats(),
-            "tiktok",
-            random_source(7),
-        )
-
-        self.assertEqual(tiktok_posts[0]["platform"], "tiktok")
-        self.assertLessEqual(len(tiktok_posts[0]["hashtags"]), 4)
-        self.assertIn("Drop this in the group chat.", tiktok_posts[0]["caption"])
-
     def test_build_ai_post_normalizes_ai_output(self):
         shirt = {
             "shirt_id": "abc123",
@@ -131,6 +65,95 @@ class PostGeneratorTests(unittest.TestCase):
 
         self.assertEqual(post["hashtags"], ["#PointBreak", "#SurfCulture"])
         self.assertEqual(post["post_type"], "ai_custom")
+
+    def test_build_ai_post_removes_raw_urls_from_instagram_caption(self):
+        shirt = {
+            "shirt_id": "abc123",
+            "title": "Biblical Sense",
+            "url": "https://example.com/biblical",
+            "image_url": "https://example.com/biblical.jpg",
+            "theme": "religion",
+            "tags": ["religion"],
+        }
+        components = {
+            "headline": "Biblical Sense goes sharper",
+            "caption": "A custom caption with the URL https://example.com/biblical",
+            "hashtags": ["#religion"],
+            "alt_text": "A product image for Biblical Sense.",
+            "post_type": "ai_custom",
+        }
+
+        post = build_ai_post(
+            shirt,
+            components,
+            load_content_formats(),
+            "instagram",
+            random_source(7),
+        )
+
+        self.assertNotIn("https://example.com", post["caption"])
+        self.assertNotIn("link in bio", post["caption"].lower())
+
+    def test_build_ai_post_does_not_duplicate_link_in_bio_cta(self):
+        shirt = {
+            "shirt_id": "abc123",
+            "title": "Smell You Later",
+            "url": "https://example.com/smell",
+            "image_url": "https://example.com/smell.jpg",
+            "theme": "funny",
+            "tags": ["funny"],
+        }
+        components = {
+            "headline": "A sharp goodbye",
+            "caption": "Dive into the fine art of farewell at the link in bio.",
+            "hashtags": ["#funny"],
+            "alt_text": "A product image for Smell You Later.",
+            "post_type": "ai_custom",
+        }
+
+        post = build_ai_post(
+            shirt,
+            components,
+            load_content_formats(),
+            "instagram",
+            random_source(7),
+        )
+
+        self.assertEqual(post["caption"].lower().count("link in bio"), 1)
+
+    def test_build_ai_post_moves_inline_hashtags_into_single_deduped_block(self):
+        shirt = {
+            "shirt_id": "abc123",
+            "title": "Breaking Wind",
+            "url": "https://example.com/breaking-wind",
+            "image_url": "https://example.com/breaking-wind.jpg",
+            "theme": "tv",
+            "tags": ["tv"],
+        }
+        components = {
+            "headline": "Chemistry with consequences",
+            "caption": (
+                "Because who needs chemistry when you've got gas? "
+                "#BreakingBad #FartJokes #TVParody"
+            ),
+            "hashtags": ["#BreakingBad", "#FartJokes", "#TVParody"],
+            "alt_text": "A product image for Breaking Wind.",
+            "post_type": "ai_custom",
+        }
+
+        post = build_ai_post(
+            shirt,
+            components,
+            load_content_formats(),
+            "instagram",
+            random_source(7),
+        )
+
+        self.assertEqual(post["caption"].count("#BreakingBad"), 1)
+        self.assertEqual(post["caption"].count("#FartJokes"), 1)
+        self.assertEqual(post["caption"].count("#TVParody"), 1)
+        self.assertTrue(post["caption"].endswith("#BreakingBad #FartJokes #TVParody"))
+        self.assertNotIn("#BreakingBad #FartJokes #TVParody\n\n#BreakingBad", post["caption"])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,80 @@
+{
+  "plan_date": "2026-03-26",
+  "generated_at": "2026-03-26T00:00:00Z",
+  "platforms_considered": [
+    "instagram",
+    "bluesky"
+  ],
+  "ai_model": "gpt-4o-mini",
+  "writer_mode": "ai",
+  "approval_required_by_default": false,
+  "constraints": {
+    "campaign": "coloradans_against_full_platform_pass"
+  },
+  "planned_posts": [
+    {
+      "slot": 1,
+      "platform": "instagram",
+      "shirt_id": "etsy_2649334247",
+      "title": "Coloradans Against Craft Beer",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 2,
+      "platform": "instagram",
+      "shirt_id": "etsy_2613432644",
+      "title": "Coloradans Against Fourteeners",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 3,
+      "platform": "instagram",
+      "shirt_id": "etsy_2598077934",
+      "title": "Coloradans Against Hiking",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 4,
+      "platform": "instagram",
+      "shirt_id": "etsy_2755902323",
+      "title": "Coloradans Against Triathlons",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 5,
+      "platform": "bluesky",
+      "shirt_id": "etsy_2649334247",
+      "title": "Coloradans Against Craft Beer",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 6,
+      "platform": "bluesky",
+      "shirt_id": "etsy_2613432644",
+      "title": "Coloradans Against Fourteeners",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 7,
+      "platform": "bluesky",
+      "shirt_id": "etsy_2598077934",
+      "title": "Coloradans Against Hiking",
+      "approval_required": false,
+      "approval_status": "not_required"
+    },
+    {
+      "slot": 8,
+      "platform": "bluesky",
+      "shirt_id": "etsy_2755902323",
+      "title": "Coloradans Against Triathlons",
+      "approval_required": false,
+      "approval_status": "not_required"
+    }
+  ]
+}

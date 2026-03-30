@@ -9,7 +9,7 @@
     "max_hashtags": 5,
     "append_hashtags_to_caption": true,
     "headline_prefix": "",
-    "cta_suffix": "Save this one for later."
+    "cta_suffix": ""
   },
   "facebook": {
     "max_hashtags": 2,
@@ -27,7 +27,7 @@
     "max_hashtags": 2,
     "append_hashtags_to_caption": true,
     "headline_prefix": "",
-    "cta_suffix": "Tell us if the reference lands."
+    "cta_suffix": ""
   },
   "reels": {
     "max_hashtags": 4,

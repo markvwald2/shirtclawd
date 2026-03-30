@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
+from unittest.mock import patch
 
 from bot.post_generator import load_content_formats, load_theme_formats
 from bot.selector import load_history
@@ -53,7 +54,7 @@ class GenerateFromPlanTests(unittest.TestCase):
                     {
                         "plan_date": "2026-03-14",
                         "ai_model": "gpt-4o-mini",
-                        "writer_mode": "rule",
+                        "writer_mode": "ai",
                         "planned_posts": [
                             {"slot": 1, "platform": "x", "shirt_id": "1", "approval_required": True, "approval_status": "pending"},
                             {"slot": 2, "platform": "instagram", "shirt_id": "2", "approval_required": True, "approval_status": "pending"},
@@ -66,20 +67,34 @@ class GenerateFromPlanTests(unittest.TestCase):
                 history=str(history_path),
                 output_dir=str(output_dir),
                 seed=7,
-                writer_mode="rule",
+                writer_mode="ai",
                 ai_model="gpt-4o-mini",
                 max_ai_calls=3,
                 max_total_tokens=12000,
                 max_estimated_cost=1.0,
             )
 
-            GENERATE_POSTS.generate_from_plan(
-                args=args,
-                inventory=inventory,
-                theme_formats=load_theme_formats(),
-                content_formats=load_content_formats(),
-                pricing={},
-            )
+            with patch.object(
+                GENERATE_POSTS,
+                "generate_post_components",
+                return_value={
+                    "components": {
+                        "headline": "AI headline",
+                        "caption": "AI caption",
+                        "hashtags": ["#test"],
+                        "alt_text": "AI alt text",
+                        "post_type": "ai_custom",
+                    },
+                    "usage": {},
+                },
+            ):
+                GENERATE_POSTS.generate_from_plan(
+                    args=args,
+                    inventory=inventory,
+                    theme_formats=load_theme_formats(),
+                    content_formats=load_content_formats(),
+                    pricing={},
+                )
 
             x_posts = json.loads((output_dir / "posts_2026-03-14_x.json").read_text())
             instagram_posts = json.loads((output_dir / "posts_2026-03-14_instagram.json").read_text())
@@ -104,7 +119,7 @@ class GenerateFromPlanTests(unittest.TestCase):
                     {
                         "plan_date": "2026-03-14",
                         "ai_model": "gpt-4o-mini",
-                        "writer_mode": "rule",
+                        "writer_mode": "ai",
                         "planned_posts": [
                             {"slot": 1, "platform": "x", "shirt_id": "missing", "approval_required": True, "approval_status": "pending"},
                         ],
@@ -116,7 +131,7 @@ class GenerateFromPlanTests(unittest.TestCase):
                 history=str(tmp_path / "history.json"),
                 output_dir=str(tmp_path / "output"),
                 seed=7,
-                writer_mode="rule",
+                writer_mode="ai",
                 ai_model="gpt-4o-mini",
                 max_ai_calls=3,
                 max_total_tokens=12000,

@@ -45,7 +45,7 @@ def build_daily_plan(
                 "shirt_id": shirt["shirt_id"],
                 "title": shirt["title"],
                 "theme": shirt.get("theme", ""),
-                "writer_mode": "auto",
+                "writer_mode": "ai",
                 "approval_required": approval_required,
                 "approval_status": "pending" if approval_required else "not_required",
                 "estimated_ai_cost_usd": estimated_ai_cost,
@@ -61,7 +61,7 @@ def build_daily_plan(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "platforms_considered": normalized_platforms,
         "ai_model": ai_model,
-        "writer_mode": "auto",
+        "writer_mode": "ai",
         "approval_required_by_default": approval_required,
         "constraints": {
             "max_estimated_cost_usd": max_estimated_cost,

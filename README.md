@@ -1,11 +1,12 @@
 # ClawdBot
 
-ClawdBot is a lightweight content pipeline for ShirtClawd. It syncs shirt inventory, selects products to promote, generates social copy with either deterministic rules or OpenAI, writes post batches to disk, and can optionally publish approved posts to X.
+ClawdBot is a lightweight content pipeline for ShirtClawd. It syncs shirt inventory, selects products to promote, generates AI-written social copy, writes post batches to disk, and can optionally publish to supported social platforms.
 
 The repo is intentionally small and file-based. Most state lives in JSON and JSONL files under `data/` and `output/`.
 
 For Mac laptop hosting, see `MAC_DEPLOYMENT.md`.
 For Instagram setup, see `INSTAGRAM_SETUP.md`.
+For the current go-to-market strategy, see `MARKETING_STRATEGY.md`.
 
 ## What It Does
 
@@ -16,12 +17,13 @@ ClawdBot currently supports:
 - local annotation merge for approval-only promotion eligibility and reference context
 - promotion history tracking
 - daily planning with spend-aware platform selection
-- rule-based or AI-assisted post generation
+- AI-assisted post generation
 - platform-specific formatting for Instagram, Facebook, X, Bluesky, Reels, and TikTok
 - AI usage, latency, token, and cost logging
-- budget guards that force rule-based fallback
+- budget guards that stop generation before overrun
 - X approval queue management
 - Bluesky approval-gated publishing with image upload
+- dry-run and live publishing to Instagram feed posts
 - dry-run and live publishing to X with image upload
 - a local dashboard for draft previews and usage metrics
 
@@ -30,7 +32,7 @@ ClawdBot currently supports:
 ClawdBot does not currently:
 
 - run its own scheduler
-- publish directly to Instagram or Facebook
+- publish directly to Facebook
 - maintain a feedback loop from post performance
 - discover trends or seasonal topics from external sources
 - edit or enrich product images
@@ -44,8 +46,9 @@ bot/
   approval_queue.py    File-based approval storage for X publishing
   data_loader.py       Inventory normalization, validation, dedupe
   inventory_sync.py    Remote inventory fetch, metadata, snapshots
+  instagram_publisher.py Instagram dry-run/live publishing for feed image posts
   planner.py           Daily planning and spend-aware platform selection
-  post_generator.py    Rule-based post generation and platform formatting
+  post_generator.py    AI post shaping and platform formatting
   selector.py          Eligible shirt selection and promotion history helpers
   usage_logger.py      AI usage events, budget guards, run summaries
   writer.py            Output batch and index writing
@@ -117,7 +120,7 @@ Or continue to run a single platform directly:
 ```bash
 python generate_posts.py \
   --platform instagram \
-  --writer-mode auto \
+  --writer-mode ai \
   --count 3 \
   --refresh-inventory
 ```
@@ -133,9 +136,7 @@ Supported platforms:
 
 Supported writer modes:
 
-- `rule`: deterministic copy only
-- `ai`: OpenAI only, fail hard if AI generation fails
-- `auto`: try AI first, fall back to rule-based copy on failure or budget limits
+- `ai`: OpenAI only, fail hard if AI generation fails or if budget guards trigger
 
 ### Sync Inventory
 
@@ -191,6 +192,22 @@ python publish_to_bluesky.py --file output/posts_2026-03-10_bluesky.json --index
 
 By default, live publishing requires a prior approval entry unless `--force` is used.
 
+### Publish to Instagram
+
+Dry run:
+
+```bash
+python publish_to_instagram.py --file output/posts_2026-03-22_instagram.json --index 0
+```
+
+Live publish:
+
+```bash
+python publish_to_instagram.py --file output/posts_2026-03-22_instagram.json --index 0 --publish
+```
+
+The CLI auto-loads `.env` if it exists. Current support is limited to single-image feed posts.
+
 ## Data Flow
 
 ClawdBot follows a simple pipeline:
@@ -201,7 +218,7 @@ ClawdBot follows a simple pipeline:
 4. Load promotion history from `data/promotion_history.json`.
 5. Build a daily plan that chooses platforms and shirts within the estimated AI spend limit.
 6. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
-7. Generate copy using rule-based logic or OpenAI.
+7. Generate copy with OpenAI.
 8. Apply platform-specific formatting rules.
 9. Write the post batch and update `output/post_index.json`.
 10. Append promotion history entries.
@@ -236,7 +253,7 @@ ClawdBot is file-based. Important files:
 - `data/inventory_metadata.json`: source URL, fetch time, checksum, snapshot path
 - `data/promotion_history.json`: generated-post history used for selection
 - `data/x_approval_queue.json`: approved X posts
-- `data/ai_usage.jsonl`: per-attempt AI usage and fallback events
+- `data/ai_usage.jsonl`: per-attempt AI usage and error events
 - `data/x_publish_log.jsonl`: X dry-run and publish log
 - `output/daily_plan_YYYY-MM-DD.json`: daily platform and shirt selection plan
 - `output/posts_*.json`: generated post batches
@@ -247,7 +264,7 @@ ClawdBot is file-based. Important files:
 
 ### OpenAI
 
-Required for `--writer-mode ai` and `--writer-mode auto` when AI generation is attempted:
+Required for generation:
 
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL` optional override
@@ -267,6 +284,13 @@ Required for live publishing to Bluesky:
 
 - `BLUESKY_HANDLE`
 - `BLUESKY_APP_PASSWORD`
+
+### Instagram Publishing
+
+Required for live publishing to Instagram:
+
+- `INSTAGRAM_ACCESS_TOKEN`
+- `INSTAGRAM_BUSINESS_ACCOUNT_ID`
 
 ## Local Dashboard
 
@@ -293,7 +317,18 @@ ClawdBot is optimized for:
 
 - low operational complexity
 - low AI spend
-- deterministic fallback behavior
+- fail-fast behavior when AI generation or budget checks fail
 - plain JSON artifacts that are easy to inspect and automate around
 
 It is not designed as a long-running service. It is a batch-oriented toolchain that can be scheduled externally.
+
+## Marketing Direction
+
+The current canonical marketing strategy lives in `MARKETING_STRATEGY.md`.
+
+The working thesis is:
+
+- ShirtClawd should grow by behaving like a niche publisher, not a generic merch scheduler
+- the first audience beachhead is the `Coloradans Against` series
+- content should entertain first, sell second
+- owned audience capture matters as much as social posting

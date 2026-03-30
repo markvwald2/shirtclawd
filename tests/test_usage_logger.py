@@ -27,28 +27,29 @@ class UsageLoggerTests(unittest.TestCase):
 
         self.assertAlmostEqual(cost, 0.0019)
 
-    def test_build_run_summary_counts_fallbacks(self):
-        run_context = create_run_context("x", "auto", "gpt-4o-mini", 2)
-        posts = [{"writer_mode": "rule", "post_type": "curiosity"}]
+    def test_build_run_summary_counts_errors_without_fallbacks(self):
+        run_context = create_run_context("x", "ai", "gpt-4o-mini", 2)
+        posts = [{"writer_mode": "ai", "post_type": "ai_custom"}]
         events = [
             build_usage_event(
                 run_context=run_context,
                 shirt={"shirt_id": "1", "title": "Test"},
                 platform="x",
                 model="gpt-4o-mini",
-                writer_mode="auto",
-                status="fallback",
+                writer_mode="ai",
+                status="error",
                 error="OPENAI_API_KEY is not set.",
             )
         ]
 
         summary = build_run_summary(run_context, posts, events)
 
-        self.assertEqual(summary["ai_fallbacks"], 1)
-        self.assertEqual(summary["posts_by_writer_mode"]["rule"], 1)
+        self.assertEqual(summary["ai_fallbacks"], 0)
+        self.assertEqual(summary["ai_errors"], 1)
+        self.assertEqual(summary["posts_by_writer_mode"]["ai"], 1)
 
     def test_budget_status_trips_after_successful_ai_call(self):
-        run_context = create_run_context("x", "auto", "gpt-4o-mini", 2, max_ai_calls=1)
+        run_context = create_run_context("x", "ai", "gpt-4o-mini", 2, max_ai_calls=1)
         event = build_usage_event(
             run_context=run_context,
             shirt={"shirt_id": "1", "title": "Test"},

@@ -37,6 +37,30 @@ class SelectorTests(unittest.TestCase):
 
         self.assertEqual([shirt["shirt_id"] for shirt in selected], ["2"])
 
+    def test_select_shirts_deprioritizes_recently_posted_designs(self):
+        inventory = [
+            {"shirt_id": "1", "title": "Alpha", "status": "available", "theme": "sports", "tags": ["sports"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "2", "title": "Beta", "status": "available", "theme": "movies", "tags": ["movies"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "3", "title": "Gamma", "status": "available", "theme": "funny", "tags": ["funny"], "is_promotable": True, "promotion_status": "promote"},
+        ]
+        history = [{"shirt_id": "3"}, {"shirt_id": "2"}]
+
+        selected = select_shirts(inventory, history, 1)
+
+        self.assertEqual([shirt["shirt_id"] for shirt in selected], ["1"])
+
+    def test_select_shirts_deprioritizes_recent_themes_when_possible(self):
+        inventory = [
+            {"shirt_id": "1", "title": "Alpha", "status": "available", "theme": "sports", "tags": ["sports"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "2", "title": "Beta", "status": "available", "theme": "sports", "tags": ["sports"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "3", "title": "Gamma", "status": "available", "theme": "movies", "tags": ["movies"], "is_promotable": True, "promotion_status": "promote"},
+        ]
+        history = [{"shirt_id": "1"}]
+
+        selected = select_shirts(inventory, history, 1)
+
+        self.assertEqual([shirt["shirt_id"] for shirt in selected], ["3"])
+
 
 if __name__ == "__main__":
     unittest.main()

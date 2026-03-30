@@ -10,8 +10,6 @@ from bot.data_loader import load_inventory
 from bot.inventory_sync import DEFAULT_SOURCE_URL, InventorySyncError, sync_inventory
 from bot.post_generator import (
     build_ai_post,
-    build_posts,
-    build_rule_based_post,
     load_content_formats,
     load_theme_formats,
     random_source
@@ -34,6 +32,12 @@ DEFAULT_MAX_AI_CALLS = 3
 DEFAULT_MAX_TOTAL_TOKENS = 12000
 DEFAULT_MAX_ESTIMATED_COST = 0.02
 SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "reels", "tiktok")
+SUPPORTED_WRITER_MODES = ("ai",)
+PUBLISH_LOG_PATHS = {
+    "instagram": Path("data/instagram_publish_log.jsonl"),
+    "bluesky": Path("data/bluesky_publish_log.jsonl"),
+    "x": Path("data/x_publish_log.jsonl"),
+}
 
 
 def main():
@@ -45,7 +49,7 @@ def main():
     parser.add_argument("--output-dir", default="output")
     parser.add_argument("--plan", default=None, help="Path to a daily plan JSON file.")
     parser.add_argument("--platform", choices=SUPPORTED_PLATFORMS, default="instagram")
-    parser.add_argument("--writer-mode", choices=("auto", "rule", "ai"), default="auto")
+    parser.add_argument("--writer-mode", choices=SUPPORTED_WRITER_MODES, default="ai")
     parser.add_argument("--ai-model", default=os.getenv("OPENAI_MODEL", DEFAULT_AI_MODEL))
     parser.add_argument("--max-ai-calls", type=int, default=DEFAULT_MAX_AI_CALLS)
     parser.add_argument("--max-total-tokens", type=int, default=DEFAULT_MAX_TOTAL_TOKENS)
@@ -67,6 +71,7 @@ def main():
 
     inventory = load_inventory(args.inventory)
     history = load_history(args.history)
+    validate_writer_mode(args.writer_mode)
 
     theme_formats = load_theme_formats()
     content_formats = load_content_formats()
@@ -102,6 +107,7 @@ def main():
 
 def generate_from_plan(args, inventory, theme_formats, content_formats, pricing):
     plan = load_daily_plan(args.plan)
+    validate_writer_mode(plan.get("writer_mode", args.writer_mode), source=f"plan {args.plan}")
     inventory_by_id = {shirt["shirt_id"]: shirt for shirt in inventory}
     grouped_entries = {}
     for entry in plan.get("planned_posts", []):
@@ -167,6 +173,7 @@ def generate_for_platform(
     plan_date=None,
 ):
     rng = random_source(seed)
+    recent_posts = load_recent_platform_posts(platform)
     run_context = create_run_context(
         platform,
         writer_mode,
@@ -186,6 +193,7 @@ def generate_for_platform(
         ai_model=ai_model,
         run_context=run_context,
         pricing=pricing,
+        recent_posts=recent_posts,
     )
 
     if plan_entries:
@@ -237,12 +245,23 @@ def plan_metadata(entry, plan_date):
     }
 
 
-def build_posts_for_mode(shirts, theme_formats, content_formats, platform, rng, writer_mode, ai_model, run_context, pricing):
-    if writer_mode == "rule":
-        return build_posts(shirts, theme_formats, content_formats, platform, rng), []
+def build_posts_for_mode(
+    shirts,
+    theme_formats,
+    content_formats,
+    platform,
+    rng,
+    writer_mode,
+    ai_model,
+    run_context,
+    pricing,
+    recent_posts=None,
+):
+    validate_writer_mode(writer_mode)
 
     posts = []
     usage_events = []
+    recent_posts = list(recent_posts or [])
     for shirt in shirts:
         triggered_limit = budget_status(run_context)
         if triggered_limit:
@@ -255,79 +274,97 @@ def build_posts_for_mode(shirts, theme_formats, content_formats, platform, rng, 
                     platform=platform,
                     model=ai_model,
                     writer_mode=writer_mode,
-                    status="budget_fallback",
+                    status="budget_exceeded",
                     error=message,
                     pricing=pricing,
                 )
             )
-            print(f"{message}; falling back to rule-based copy for {shirt['title']}.")
-            posts.append(build_rule_based_post(shirt, theme_formats, content_formats, platform, rng))
-            continue
+            for event in usage_events:
+                log_usage_event(event)
+            print(f"{message}; stopping before generating {shirt['title']}.")
+            raise SystemExit(1)
 
-        if writer_mode in {"auto", "ai"}:
-            started = time.perf_counter()
-            try:
-                response = generate_post_components(
+        started = time.perf_counter()
+        try:
+            response = generate_post_components(
+                shirt=shirt,
+                platform=platform,
+                model=ai_model,
+                recent_posts=recent_posts,
+            )
+            latency_ms = round((time.perf_counter() - started) * 1000, 2)
+            post = build_ai_post(shirt, response["components"], content_formats, platform, rng)
+            posts.append(post)
+            recent_posts.append(
+                {
+                    "caption": post["caption"],
+                    "hashtags": post["hashtags"],
+                }
+            )
+            usage_events.append(
+                build_usage_event(
+                    run_context=run_context,
                     shirt=shirt,
                     platform=platform,
-                    model=ai_model
+                    model=ai_model,
+                    writer_mode="ai",
+                    status="success",
+                    usage=response.get("usage", {}),
+                    latency_ms=latency_ms,
+                    pricing=pricing,
                 )
-                latency_ms = round((time.perf_counter() - started) * 1000, 2)
-                posts.append(build_ai_post(shirt, response["components"], content_formats, platform, rng))
-                usage_events.append(
-                    build_usage_event(
-                        run_context=run_context,
-                        shirt=shirt,
-                        platform=platform,
-                        model=ai_model,
-                        writer_mode="ai",
-                        status="success",
-                        usage=response.get("usage", {}),
-                        latency_ms=latency_ms,
-                        pricing=pricing,
-                    )
+            )
+            update_budget_state(run_context, usage_events[-1])
+            continue
+        except AIWriterError as exc:
+            latency_ms = round((time.perf_counter() - started) * 1000, 2)
+            usage_events.append(
+                build_usage_event(
+                    run_context=run_context,
+                    shirt=shirt,
+                    platform=platform,
+                    model=ai_model,
+                    writer_mode="ai",
+                    status="error",
+                    latency_ms=latency_ms,
+                    error=str(exc),
+                    pricing=pricing,
                 )
-                update_budget_state(run_context, usage_events[-1])
-                continue
-            except AIWriterError as exc:
-                latency_ms = round((time.perf_counter() - started) * 1000, 2)
-                if writer_mode == "ai":
-                    usage_events.append(
-                        build_usage_event(
-                            run_context=run_context,
-                            shirt=shirt,
-                            platform=platform,
-                            model=ai_model,
-                            writer_mode="ai",
-                            status="error",
-                            latency_ms=latency_ms,
-                            error=str(exc),
-                            pricing=pricing,
-                        )
-                    )
-                    for event in usage_events:
-                        log_usage_event(event)
-                    print(exc)
-                    raise SystemExit(1) from exc
-
-                usage_events.append(
-                    build_usage_event(
-                        run_context=run_context,
-                        shirt=shirt,
-                        platform=platform,
-                        model=ai_model,
-                        writer_mode="auto",
-                        status="fallback",
-                        latency_ms=latency_ms,
-                        error=str(exc),
-                        pricing=pricing,
-                    )
-                )
-                print(f"AI writer unavailable for {shirt['title']}, falling back to rule-based copy: {exc}")
-
-        posts.append(build_rule_based_post(shirt, theme_formats, content_formats, platform, rng))
+            )
+            for event in usage_events:
+                log_usage_event(event)
+            print(exc)
+            raise SystemExit(1) from exc
 
     return posts, usage_events
+
+
+def validate_writer_mode(writer_mode, source="request"):
+    if writer_mode not in SUPPORTED_WRITER_MODES:
+        supported = ", ".join(SUPPORTED_WRITER_MODES)
+        raise SystemExit(
+            f"Unsupported writer mode '{writer_mode}' in {source}. "
+            f"Supported writer modes: {supported}. Rule-based fallback has been removed."
+        )
+
+
+def load_recent_platform_posts(platform, limit=12):
+    path = PUBLISH_LOG_PATHS.get(platform)
+    if path is None or not path.exists():
+        return []
+
+    posts = []
+    with path.open() as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line:
+                continue
+            payload = json.loads(line)
+            text = str(payload.get("caption") or payload.get("text") or payload.get("body") or "").strip()
+            hashtags = [token for token in text.split() if token.startswith("#")]
+            posts.append({"caption": text, "hashtags": hashtags})
+
+    return posts[-limit:]
 
 
 if __name__ == "__main__":

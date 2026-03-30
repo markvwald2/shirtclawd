@@ -77,6 +77,62 @@ class DataLoaderTests(unittest.TestCase):
             self.assertEqual(loaded[0]["tone_notes"], "Dry and a little smug.")
             self.assertEqual(loaded[0]["notes"], "Skip broad audience campaigns.")
 
+    def test_load_inventory_canonicalizes_spreadshop_urls_to_storefront_domain(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory_path = Path(tmpdir) / "inventory.json"
+            inventory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "shirt_id": "abc123",
+                            "shirt_name": "Riggs & Murtaugh",
+                            "product_url": "https://thirdstringshirts.myspreadshop.com/riggs+%26+murtaugh?idea=5d89cc2e13615160bf6edc74",
+                            "image_url": "https://example.com/riggs.jpg",
+                        }
+                    ]
+                )
+            )
+
+            loaded = load_inventory(inventory_path)
+
+            self.assertEqual(
+                loaded[0]["url"],
+                "https://www.thirdstringshirts.com/shop.html#!/riggs+%26+murtaugh?idea=5d89cc2e13615160bf6edc74",
+            )
+
+    def test_load_inventory_canonicalizes_any_myspreadshop_hostname(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory_path = Path(tmpdir) / "inventory.json"
+            inventory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "shirt_id": "abc123",
+                            "shirt_name": "Breaking Wind",
+                            "product_url": "https://thirdstringshirts.myspreadshop.co.uk/breaking+wind?idea=5d89cbe26bbdbb2e6a46975e",
+                            "image_url": "https://example.com/breaking-wind.jpg",
+                        },
+                        {
+                            "shirt_id": "def456",
+                            "shirt_name": "Biblical Sense",
+                            "product_url": "https://foo.myspreadshop.com/biblical+sense?idea=5d8e1581b4b8c76220050334",
+                            "image_url": "https://example.com/biblical-sense.jpg",
+                        },
+                    ]
+                )
+            )
+
+            loaded = load_inventory(inventory_path)
+
+            self.assertEqual(
+                loaded[0]["url"],
+                "https://www.thirdstringshirts.com/shop.html#!/breaking+wind?idea=5d89cbe26bbdbb2e6a46975e",
+            )
+            self.assertEqual(
+                loaded[1]["url"],
+                "https://www.thirdstringshirts.com/shop.html#!/biblical+sense?idea=5d8e1581b4b8c76220050334",
+            )
+
     def test_load_inventory_defaults_unannotated_shirts_to_review_only(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             inventory_path = Path(tmpdir) / "inventory.json"
