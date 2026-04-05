@@ -202,7 +202,13 @@ def generate_for_platform(
 
     now = datetime.now(timezone.utc)
     run_date = plan_date or now.date().isoformat()
-    destination = write_posts(posts, run_date, output_dir, platform)
+    destination = write_posts(
+        posts,
+        run_date,
+        output_dir,
+        platform,
+        run_id=run_context["run_id"],
+    )
 
     history_entries = [
         {

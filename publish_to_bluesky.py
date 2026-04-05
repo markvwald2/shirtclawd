@@ -1,4 +1,22 @@
 from argparse import ArgumentParser
+import os
+from pathlib import Path
+
+
+def load_env_file(path=".env"):
+    env_path = Path(path)
+    if not env_path.exists():
+        return
+    for line in env_path.read_text().splitlines():
+        text = line.strip()
+        if not text or text.startswith("#") or "=" not in text:
+            continue
+        key, value = text.split("=", 1)
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_env_file()
 
 from bot.approval_queue import DEFAULT_BLUESKY_APPROVAL_QUEUE_PATH, is_post_approved
 from bot.bluesky_publisher import (

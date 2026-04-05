@@ -2,18 +2,32 @@ import json
 from pathlib import Path
 
 
-def write_posts(posts, run_date, output_dir=Path("output"), platform="default"):
+def write_posts(posts, run_date, output_dir=Path("output"), platform="default", run_id=None):
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    destination = output_path / f"posts_{run_date}_{platform}.json"
+    destination = build_posts_destination(output_path, run_date, platform, run_id=run_id)
     with destination.open("w") as handle:
         json.dump(posts, handle, indent=2)
         handle.write("\n")
-    update_post_index(output_path, destination, posts, platform)
+    update_post_index(output_path, destination, posts, platform, run_id=run_id)
     return destination
 
 
-def update_post_index(output_path, destination, posts, platform):
+def build_posts_destination(output_path, run_date, platform, run_id=None):
+    run_tag = normalize_run_tag(run_id)
+    if run_tag:
+        return output_path / f"posts_{run_date}_{platform}_{run_tag}.json"
+    return output_path / f"posts_{run_date}_{platform}.json"
+
+
+def normalize_run_tag(run_id):
+    text = str(run_id or "").strip()
+    if not text:
+        return ""
+    return text[4:] if text.startswith("run_") else text
+
+
+def update_post_index(output_path, destination, posts, platform, run_id=None):
     index_path = output_path / "post_index.json"
     if index_path.exists():
         with index_path.open() as handle:
@@ -28,6 +42,8 @@ def update_post_index(output_path, destination, posts, platform):
         "post_count": len(posts),
         "titles": [post.get("title", "") for post in posts[:5]],
     }
+    if run_id:
+        record["run_id"] = run_id
 
     files = [entry for entry in index.get("files", []) if entry.get("filename") != destination.name]
     files.append(record)

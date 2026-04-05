@@ -24,6 +24,28 @@ STOP_ON_INSTAGRAM_LIMIT="${STOP_ON_INSTAGRAM_LIMIT:-0}"
 START_TIME="$(date +%s)"
 END_TIME="$((START_TIME + DURATION_SECONDS))"
 
+latest_posts_file() {
+  local platform="$1"
+  "$PYTHON_BIN" - "$platform" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+platform = sys.argv[1]
+index_path = Path("output/post_index.json")
+if not index_path.exists():
+    raise SystemExit(f"Missing {index_path}")
+
+payload = json.loads(index_path.read_text())
+for entry in payload.get("files", []):
+    if entry.get("platform") == platform:
+        print(entry["path"])
+        break
+else:
+    raise SystemExit(f"No post index entry found for platform={platform}")
+PY
+}
+
 if [[ -z "${OPENAI_API_KEY:-}" ]]; then
   echo "Missing OPENAI_API_KEY."
   exit 1
@@ -43,10 +65,9 @@ round=1
 while [[ "$(date +%s)" -lt "$END_TIME" ]]; do
   echo "== Round $round =="
 
-  run_date="$(date -u +%F)"
-
   "$PYTHON_BIN" generate_posts.py --platform bluesky --writer-mode ai --count 1
-  "$PYTHON_BIN" publish_to_bluesky.py --file "output/posts_${run_date}_bluesky.json" --index 0 --publish --force
+  bluesky_file="$(latest_posts_file bluesky)"
+  "$PYTHON_BIN" publish_to_bluesky.py --file "$bluesky_file" --index 0 --publish --force
 
   instagram_allowed=0
   if "$PYTHON_BIN" check_instagram_limit.py --account-id "$INSTAGRAM_ACCOUNT_ID" >/tmp/shirtclawd-instagram-limit.json 2>/tmp/shirtclawd-instagram-limit.err; then
@@ -67,8 +88,9 @@ while [[ "$(date +%s)" -lt "$END_TIME" ]]; do
 
   if [[ "$instagram_allowed" -eq 1 ]]; then
     "$PYTHON_BIN" generate_posts.py --platform instagram --writer-mode ai --count 1
+    instagram_file="$(latest_posts_file instagram)"
     set +e
-    "$PYTHON_BIN" publish_to_instagram.py --file "output/posts_${run_date}_instagram.json" --index 0 --account-id "$INSTAGRAM_ACCOUNT_ID" --publish >/tmp/shirtclawd-instagram-publish.out 2>/tmp/shirtclawd-instagram-publish.err
+    "$PYTHON_BIN" publish_to_instagram.py --file "$instagram_file" --index 0 --account-id "$INSTAGRAM_ACCOUNT_ID" --publish >/tmp/shirtclawd-instagram-publish.out 2>/tmp/shirtclawd-instagram-publish.err
     exit_code=$?
     set -e
     if [[ "$exit_code" -eq 0 ]]; then
