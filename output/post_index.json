@@ -1,6 +1,24 @@
 {
   "files": [
     {
+      "path": "output/posts_2026-04-05_instagram.json",
+      "filename": "posts_2026-04-05_instagram.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "I Don't Give a Shit about Men's Sports"
+      ]
+    },
+    {
+      "path": "output/posts_2026-04-05_bluesky.json",
+      "filename": "posts_2026-04-05_bluesky.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "I Don't Give a Shit about Men's Sports"
+      ]
+    },
+    {
       "path": "output/posts_2026-03-26_x.json",
       "filename": "posts_2026-03-26_x.json",
       "platform": "x",

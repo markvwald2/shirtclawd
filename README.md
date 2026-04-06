@@ -138,6 +138,22 @@ Supported writer modes:
 
 - `ai`: OpenAI only, fail hard if AI generation fails or if budget guards trigger
 
+### Natural-Language Generation
+
+You can also drive generation with a plain-English command:
+
+```bash
+python shirtclawd.py ask "Write 2 posts for Instagram for the Coloradans Against shirts"
+```
+
+Current support is intentionally narrow:
+
+- generation requests only
+- one platform per command
+- optional product/theme filter after the platform clause
+
+The command prints the parsed intent, the matched shirts, and the generated output path.
+
 ### Sync Inventory
 
 ```bash

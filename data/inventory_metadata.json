@@ -1,8 +1,8 @@
 {
   "source_url": "https://raw.githubusercontent.com/markvwald2/thirdstringshirts/master/data/shirt_inventory.json",
-  "fetched_at": "2026-03-10T03:09:40.435370+00:00",
+  "fetched_at": "2026-04-05T00:39:08.991748+00:00",
   "destination": "data/shirt_inventory.json",
-  "snapshot_path": "data/snapshots/shirt_inventory_20260310T030940Z.json",
-  "record_count": 302,
-  "sha256": "df2cb71aeda8548b37b9a3c3e783609d8976914cacce88979136fad7dec5cbed"
+  "snapshot_path": "data/snapshots/shirt_inventory_20260405T003908Z.json",
+  "record_count": 298,
+  "sha256": "36a7a699c04fc0e8dd2a7563c77b2e8587e87f5779de371f1c3879bc52cde65b"
 }

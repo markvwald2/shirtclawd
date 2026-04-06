@@ -68,6 +68,21 @@ def select_shirts(inventory, history, count):
     return selected
 
 
+def select_matching_shirts(inventory, history, count, query):
+    if count <= 0:
+        return []
+
+    matching = [
+        shirt
+        for shirt in inventory
+        if shirt_matches_query(shirt, query)
+    ]
+    if not matching:
+        return []
+
+    return select_shirts(matching, history, count)
+
+
 def append_history(entries, path=DEFAULT_HISTORY_PATH):
     history = load_history(path)
     history.extend(entries)
@@ -118,3 +133,34 @@ def build_recent_theme_counts(history, inventory, limit):
 
 def normalize_theme(theme):
     return str(theme or "").strip().lower()
+
+
+def shirt_matches_query(shirt, query):
+    tokens = tokenize_query(query)
+    if not tokens:
+        return True
+
+    haystacks = [
+        shirt.get("title", ""),
+        shirt.get("theme", ""),
+        shirt.get("reference_summary", ""),
+        shirt.get("notes", ""),
+        shirt.get("tone_notes", ""),
+    ]
+    haystacks.extend(shirt.get("tags", []))
+    haystacks.extend(shirt.get("target_audience", []))
+    searchable = " ".join(str(value).lower() for value in haystacks if value)
+    return all(token in searchable for token in tokens)
+
+
+def tokenize_query(query):
+    text = str(query or "").strip().lower()
+    if not text:
+        return []
+
+    cleaned = text.replace("-", " ")
+    for suffix in (" shirts", " shirt", " tees", " tee", " posts", " post"):
+        if cleaned.endswith(suffix):
+            cleaned = cleaned[: -len(suffix)]
+            break
+    return [token for token in cleaned.split() if token]

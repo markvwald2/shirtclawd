@@ -1,4 +1,30 @@
 {
+  "69d31a538c78661dd8b37baf": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A joke about the daily cyclical lifestyle of someone who likes coffee and alcohol. The sequence runs through waking up and caffeinating, trying to recover by hydrating, getting drunk again that night, and then repeating the whole routine the next day.",
+    "target_audience": [
+      "coffee drinkers",
+      "people who joke about hangovers",
+      "bar and nightlife fans",
+      "fans of blunt lifestyle humor"
+    ],
+    "tone": "deadpan_lifestyle_wordplay",
+    "tone_notes": "Keep it dry, matter-of-fact, and a little self-aware. The joke works best when the routine is described like a perfectly normal life cycle instead of something dramatic.",
+    "notes": ""
+  },
+  "69d1a3fb8c78661dd8f611bb": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A riff on the popular 'Everyone watches women's sports' apparel line, especially familiar to NWSL and WNBA fans. This version turns the original pro-women's-sports message into a sharper rebuttal by saying it doesn't care about men's sports at all.",
+    "target_audience": [
+      "women's sports fans",
+      "NWSL fans",
+      "WNBA fans",
+      "fans of blunt slogan humor"
+    ],
+    "notes": ""
+  },
   "68a60ecc6fbe8b1fbcc405cc": {
     "promotion_status": "promote",
     "is_promotable": true,

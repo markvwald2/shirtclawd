@@ -6472,48 +6472,5 @@
     "priority": "",
     "evergreen": null,
     "image_url": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T812A648PA4267PT17X110Y61D1058520252W12499H19070/views/1,width=500,height=500,appearanceId=648/yellowhammer-state.png"
-  },
-  {
-    "name": "I Don't Give a Shit about Men's Sports",
-    "URL": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T812A1256PA4267PT17X40Y64D1058559327W26423H9600/views/1,width=500,height=500,appearanceId=1256,backgroundColor=ffffff/i-dont-give-a-shit-about-mens-sports-mens-premium-t-shirt.jpg",
-    "sub_theme": "sports",
-    "tags": [
-      "sports",
-      "men's sports"
-    ],
-    "theme": "funny",
-    "platform": "Spreadshirt",
-    "product_url": "https://www.thirdstringshirts.com/shop.html#!/i+dont+give+a+shit+about+mens+sports?idea=69d1a3fb8c78661dd8f611bb",
-    "idea_id": "69d1a3fb8c78661dd8f611bb",
-    "source_of_truth": "local",
-    "source_match": "storefront_article",
-    "shirt_id": "69d1a3fb8c78661dd8f611bb",
-    "shirt_name": "I Don't Give a Shit about Men's Sports",
-    "tone": "",
-    "priority": "",
-    "evergreen": null,
-    "image_url": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T812A1256PA4267PT17X40Y64D1058559327W26423H9600/views/1,width=500,height=500,appearanceId=1256,backgroundColor=ffffff/i-dont-give-a-shit-about-mens-sports-mens-premium-t-shirt.jpg"
-  },
-  {
-    "name": "Caffeinate Hydrate Inebriate Replicate",
-    "URL": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T812A649PA4267PT17X86Y39D1058562035W17528H20711/views/1,width=500,height=500,appearanceId=649/caffeinate-hydrate-inebriate-replicate.png",
-    "sub_theme": "food",
-    "tags": [
-      "funny",
-      "science"
-    ],
-    "theme": "funny",
-    "platform": "Spreadshirt",
-    "product_url": "https://www.thirdstringshirts.com/shop.html#!/caffeinate+hydrate+inebriate+replicate?idea=69d31a538c78661dd8b37baf",
-    "idea_id": "69d31a538c78661dd8b37baf",
-    "source_of_truth": "local",
-    "source_match": "storefront",
-    "shirt_id": "69d31a538c78661dd8b37baf",
-    "shirt_name": "Caffeinate Hydrate Inebriate Replicate",
-    "tone": "",
-    "priority": "",
-    "evergreen": null,
-    "image_url": "https://image.spreadshirtmedia.com/image-server/v1/compositions/T812A649PA4267PT17X86Y39D1058562035W17528H20711/views/1,width=500,height=500,appearanceId=649/caffeinate-hydrate-inebriate-replicate.png",
-    "share_image_url": "https://image.spreadshirtmedia.com/image-server/v1/products/T812A649PA4267PT17X86Y39D1058562035W17528H20711/views/1,width=500,height=500,appearanceId=649,backgroundColor=ffffff/caffeinate-hydrate-inebriate-replicate-mens-premium-t-shirt.jpg"
   }
 ]
