@@ -31,12 +31,13 @@ from bot.writer import write_posts
 DEFAULT_MAX_AI_CALLS = 3
 DEFAULT_MAX_TOTAL_TOKENS = 12000
 DEFAULT_MAX_ESTIMATED_COST = 0.02
-SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "reels", "tiktok")
+SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "threads", "reels", "tiktok")
 SUPPORTED_WRITER_MODES = ("ai",)
 PUBLISH_LOG_PATHS = {
     "instagram": Path("data/instagram_publish_log.jsonl"),
     "bluesky": Path("data/bluesky_publish_log.jsonl"),
     "x": Path("data/x_publish_log.jsonl"),
+    "threads": Path("data/threads_publish_log.jsonl"),
 }
 
 

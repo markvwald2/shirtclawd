@@ -154,6 +154,29 @@ class DataLoaderTests(unittest.TestCase):
             self.assertFalse(loaded[0]["is_promotable"])
             self.assertEqual(loaded[0]["promotion_status"], "review")
 
+    def test_load_inventory_canonicalizes_local_etsy_asset_paths(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory_path = Path(tmpdir) / "inventory.json"
+            inventory_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "shirt_id": "etsy_123",
+                            "title": "Coloradans Against Hiking",
+                            "url": "https://example.com/hiking",
+                            "image_url": "./assets/etsy/unisex-tri-blend-t-shirt-athletic-grey-triblend-front-69ad833a66dfe.png",
+                        }
+                    ]
+                )
+            )
+
+            loaded = load_inventory(inventory_path)
+
+            self.assertEqual(
+                loaded[0]["image_url"],
+                "https://www.thirdstringshirts.com/assets/etsy/unisex-tri-blend-t-shirt-athletic-grey-triblend-front-69ad833a66dfe.png",
+            )
+
     def test_load_inventory_deduplicates_by_shirt_id(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             inventory_path = Path(tmpdir) / "inventory.json"

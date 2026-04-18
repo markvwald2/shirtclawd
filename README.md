@@ -1,12 +1,12 @@
 # ClawdBot
 
-ClawdBot is a lightweight content pipeline for ShirtClawd. It syncs shirt inventory, selects products to promote, generates AI-written social copy, writes post batches to disk, and can optionally publish to supported social platforms.
+ClawdBot is a lightweight content pipeline for ShirtClawd. It syncs shirt inventory, selects products to promote, generates AI-written social copy, writes post batches to disk, and can optionally publish to selected social platforms.
 
 The repo is intentionally small and file-based. Most state lives in JSON and JSONL files under `data/` and `output/`.
 
 For Mac laptop hosting, see `MAC_DEPLOYMENT.md`.
-For Instagram setup, see `INSTAGRAM_SETUP.md`.
 For the current go-to-market strategy, see `MARKETING_STRATEGY.md`.
+For common Codex operations, see `CODEX_WORKFLOWS.md`.
 
 ## What It Does
 
@@ -23,6 +23,7 @@ ClawdBot currently supports:
 - budget guards that stop generation before overrun
 - X approval queue management
 - Bluesky approval-gated publishing with image upload
+- dry-run and live publishing to Threads posts with optional image attachment
 - dry-run and live publishing to Instagram feed posts
 - dry-run and live publishing to X with image upload
 - a local dashboard for draft previews and usage metrics
@@ -45,13 +46,14 @@ bot/
   ai_writer.py         OpenAI Responses API client and response validation
   approval_queue.py    File-based approval storage for X publishing
   data_loader.py       Inventory normalization, validation, dedupe
-  inventory_sync.py    Remote inventory fetch, metadata, snapshots
   instagram_publisher.py Instagram dry-run/live publishing for feed image posts
+  inventory_sync.py    Remote inventory fetch, metadata, snapshots
   planner.py           Daily planning and spend-aware platform selection
   post_generator.py    AI post shaping and platform formatting
   selector.py          Eligible shirt selection and promotion history helpers
   usage_logger.py      AI usage events, budget guards, run summaries
   writer.py            Output batch and index writing
+  threads_publisher.py Threads dry-run/live publishing with optional image attachment
   x_publisher.py       X dry-run/live publishing and media upload
 
 config/
@@ -131,6 +133,7 @@ Supported platforms:
 - `facebook`
 - `x`
 - `bluesky`
+- `threads`
 - `reels`
 - `tiktok`
 
@@ -161,6 +164,14 @@ python sync_inventory.py
 ```
 
 This fetches the canonical inventory JSON, writes `data/shirt_inventory.json`, records fetch metadata, and stores a timestamped snapshot in `data/snapshots/`.
+
+### Manage Catalog
+
+```bash
+python manage_catalog.py --help
+```
+
+Use this to add new shirts to inventory and to mark shirts promotable with local metadata for generation.
 
 ### Approve a Post for X
 
@@ -207,6 +218,22 @@ python publish_to_bluesky.py --file output/posts_2026-03-10_bluesky.json --index
 ```
 
 By default, live publishing requires a prior approval entry unless `--force` is used.
+
+### Publish to Threads
+
+Dry run:
+
+```bash
+python publish_to_threads.py --file output/posts_2026-03-10_threads.json --index 0
+```
+
+Live publish:
+
+```bash
+python publish_to_threads.py --file output/posts_2026-03-10_threads.json --index 0 --publish
+```
+
+Current support publishes image posts when `image_url` is present and falls back to text-only otherwise.
 
 ### Publish to Instagram
 
@@ -271,6 +298,7 @@ ClawdBot is file-based. Important files:
 - `data/x_approval_queue.json`: approved X posts
 - `data/ai_usage.jsonl`: per-attempt AI usage and error events
 - `data/x_publish_log.jsonl`: X dry-run and publish log
+- `data/threads_publish_log.jsonl`: Threads dry-run and publish log
 - `output/daily_plan_YYYY-MM-DD.json`: daily platform and shirt selection plan
 - `output/posts_*.json`: generated post batches
 - `output/post_index.json`: small index used by the UI
@@ -301,12 +329,12 @@ Required for live publishing to Bluesky:
 - `BLUESKY_HANDLE`
 - `BLUESKY_APP_PASSWORD`
 
-### Instagram Publishing
+### Threads Publishing
 
-Required for live publishing to Instagram:
+Required for live publishing to Threads:
 
-- `INSTAGRAM_ACCESS_TOKEN`
-- `INSTAGRAM_BUSINESS_ACCOUNT_ID`
+- `THREADS_ACCESS_TOKEN`
+- `THREADS_USER_ID`
 
 ## Local Dashboard
 

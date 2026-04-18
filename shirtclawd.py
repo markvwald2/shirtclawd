@@ -2,10 +2,13 @@ from argparse import ArgumentParser
 import os
 from pathlib import Path
 
+from bot.bluesky_publisher import BlueskyPublisherError, publish_post as publish_bluesky_post
 from bot.data_loader import load_inventory
+from bot.instagram_publisher import InstagramPublisherError, publish_post as publish_instagram_post
 from bot.nl_commands import parse_command
 from bot.post_generator import load_content_formats, load_theme_formats
 from bot.selector import load_history, select_matching_shirts, select_shirts
+from bot.threads_publisher import ThreadsPublisherError, publish_post as publish_threads_post
 from bot.usage_logger import load_pricing
 from generate_posts import (
     DEFAULT_AI_MODEL,
@@ -47,6 +50,11 @@ def main():
     ask_parser.add_argument("--max-ai-calls", type=int, default=DEFAULT_MAX_AI_CALLS)
     ask_parser.add_argument("--max-total-tokens", type=int, default=DEFAULT_MAX_TOTAL_TOKENS)
     ask_parser.add_argument("--max-estimated-cost", type=float, default=DEFAULT_MAX_ESTIMATED_COST)
+    ask_parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Generate and immediately publish supported platforms like Instagram and Bluesky.",
+    )
     args = parser.parse_args()
 
     if args.command == "ask":
@@ -86,7 +94,11 @@ def run_ask(args):
     )
     append_generated_history(generated["history_entries"], args.history)
 
-    print(build_ask_response(parsed, shirts, generated, base_dir=Path.cwd()))
+    publish_results = []
+    if args.publish:
+        publish_results = publish_generated_posts(parsed.platform, generated["posts"])
+
+    print(build_ask_response(parsed, shirts, generated, publish_results=publish_results, base_dir=Path.cwd()))
 
 
 def append_generated_history(entries, history_path):
@@ -96,10 +108,36 @@ def append_generated_history(entries, history_path):
         append_history(entries, history_path)
 
 
-def build_ask_response(parsed, shirts, generated, base_dir=None):
+def publish_generated_posts(platform, posts):
+    if platform == "instagram":
+        publisher = publish_instagram_post
+        handled_error = InstagramPublisherError
+    elif platform == "bluesky":
+        publisher = publish_bluesky_post
+        handled_error = BlueskyPublisherError
+    elif platform == "threads":
+        publisher = publish_threads_post
+        handled_error = ThreadsPublisherError
+    else:
+        raise SystemExit(
+            f"Direct publish is not supported for platform '{platform}'. "
+            "Use generate-only mode or a dedicated publisher command."
+        )
+
+    results = []
+    for post in posts:
+        try:
+            results.append(publisher(post, dry_run=False))
+        except handled_error as exc:
+            raise SystemExit(f"Publishing failed for {post.get('title', 'untitled post')}: {exc}") from exc
+    return results
+
+
+def build_ask_response(parsed, shirts, generated, publish_results=None, base_dir=None):
     base_dir = Path(base_dir) if base_dir else Path.cwd()
     destination = format_output_path(generated["destination"], base_dir)
     summary_path = format_output_path(generated["summary_path"], base_dir)
+    publish_results = publish_results or []
 
     lines = [
         f"Ready: {len(generated['posts'])} {parsed.platform} post{'s' if len(generated['posts']) != 1 else ''}.",
@@ -111,6 +149,11 @@ def build_ask_response(parsed, shirts, generated, base_dir=None):
         lines.append(f"- {shirt['title']}")
     lines.append(f"Posts file: {destination}")
     lines.append(f"Run summary: {summary_path}")
+    if publish_results:
+        lines.append("Published:")
+        for result in publish_results:
+            identifier = result.get("instagram_media_id") or result.get("uri") or result.get("threads_media_id") or "ok"
+            lines.append(f"- {result.get('title', 'Untitled')} -> {identifier}")
     return "\n".join(lines)
 
 

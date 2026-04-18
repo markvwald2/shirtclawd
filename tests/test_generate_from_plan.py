@@ -96,8 +96,10 @@ class GenerateFromPlanTests(unittest.TestCase):
                     pricing={},
                 )
 
-            x_posts = json.loads((output_dir / "posts_2026-03-14_x.json").read_text())
-            instagram_posts = json.loads((output_dir / "posts_2026-03-14_instagram.json").read_text())
+            x_path = next(output_dir.glob("posts_2026-03-14_x*.json"))
+            instagram_path = next(output_dir.glob("posts_2026-03-14_instagram*.json"))
+            x_posts = json.loads(x_path.read_text())
+            instagram_posts = json.loads(instagram_path.read_text())
 
             self.assertEqual(len(x_posts), 1)
             self.assertEqual(len(instagram_posts), 1)

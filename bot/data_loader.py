@@ -7,6 +7,7 @@ DEFAULT_INVENTORY_PATH = Path("data/shirt_inventory.json")
 DEFAULT_ANNOTATIONS_PATH = Path("data/shirt_annotations.json")
 REQUIRED_FIELDS = ("shirt_id", "title", "url", "image_url")
 CANONICAL_STOREFRONT_URL = "https://www.thirdstringshirts.com/shop.html#!/"
+CANONICAL_ASSET_BASE_URL = "https://www.thirdstringshirts.com/"
 
 
 def load_inventory(path=DEFAULT_INVENTORY_PATH, annotations_path=DEFAULT_ANNOTATIONS_PATH):
@@ -78,7 +79,7 @@ def normalize_record(record, annotation=None):
         "shirt_id": str(record.get("shirt_id", "")).strip(),
         "title": title,
         "url": url,
-        "image_url": str(record.get("image_url", "")).strip(),
+        "image_url": canonicalize_image_url(record.get("image_url", "")),
         "status": status,
         "tags": tags,
         "theme": first_non_empty(tags[:1] + [record.get("sub_theme"), record.get("theme")]),
@@ -111,6 +112,19 @@ def canonicalize_product_url(url):
     if query:
         return f"{CANONICAL_STOREFRONT_URL}{slug}?{query}"
     return f"{CANONICAL_STOREFRONT_URL}{slug}"
+
+
+def canonicalize_image_url(image_url):
+    text = str(image_url or "").strip()
+    if not text:
+        return ""
+
+    normalized = text
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+    if normalized.startswith("assets/etsy/"):
+        return f"{CANONICAL_ASSET_BASE_URL}{normalized}"
+    return text
 
 
 def first_value(record, *keys):

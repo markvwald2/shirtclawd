@@ -3,7 +3,7 @@ import re
 from typing import Optional
 
 
-SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "reels", "tiktok")
+SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "threads", "reels", "tiktok")
 GENERATION_VERBS = ("write", "generate", "create", "make", "draft")
 
 

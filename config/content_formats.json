@@ -29,6 +29,12 @@
     "headline_prefix": "",
     "cta_suffix": ""
   },
+  "threads": {
+    "max_hashtags": 2,
+    "append_hashtags_to_caption": true,
+    "headline_prefix": "",
+    "cta_suffix": ""
+  },
   "reels": {
     "max_hashtags": 4,
     "append_hashtags_to_caption": true,

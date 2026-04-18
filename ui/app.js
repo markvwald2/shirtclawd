@@ -165,9 +165,14 @@ function renderPlatformPreview(post, isApproved) {
     `;
   }
 
-  if (platform === "x" || platform === "bluesky") {
+  if (platform === "x" || platform === "bluesky" || platform === "threads") {
     const tweetPreview = buildXTweetPreview(post, platform);
-    const handle = platform === "bluesky" ? "@thirdstringshirts.bsky.social" : "@3rdStringShirts";
+    const handle =
+      platform === "bluesky"
+        ? "@thirdstringshirts.bsky.social"
+        : platform === "threads"
+          ? "@3rdstringshirts"
+          : "@3rdStringShirts";
     return `
       <article class="post-card post-card-x">
         ${meta}
@@ -247,7 +252,7 @@ function buildXTweetPreview(post, platform = "x") {
     .replace(/#@/g, "#")
     .replace(/\s+/g, " ")
     .trim();
-  const limit = platform === "bluesky" ? 300 : 280;
+  const limit = platform === "bluesky" ? 300 : platform === "threads" ? 500 : 280;
   return {
     text: normalized,
     characters: normalized.length,
@@ -276,7 +281,7 @@ function buildMetaPills(post, platform, isApproved) {
     pills.push(`type: ${post.post_type}`);
   }
 
-  if (platform === "x" || platform === "bluesky") {
+  if (platform === "x" || platform === "bluesky" || platform === "threads") {
     pills.push(`status: ${isApproved ? "approved" : "not approved"}`);
   }
 
