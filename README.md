@@ -23,6 +23,7 @@ ClawdBot currently supports:
 - budget guards that stop generation before overrun
 - X approval queue management
 - Bluesky approval-gated publishing with image upload
+- dry-run and live publishing to Facebook Page feed posts
 - dry-run and live publishing to Threads posts with optional image attachment
 - dry-run and live publishing to Instagram feed posts
 - dry-run and live publishing to X with image upload
@@ -33,7 +34,6 @@ ClawdBot currently supports:
 ClawdBot does not currently:
 
 - run its own scheduler
-- publish directly to Facebook
 - maintain a feedback loop from post performance
 - discover trends or seasonal topics from external sources
 - edit or enrich product images
@@ -46,6 +46,7 @@ bot/
   ai_writer.py         OpenAI Responses API client and response validation
   approval_queue.py    File-based approval storage for X publishing
   data_loader.py       Inventory normalization, validation, dedupe
+  facebook_publisher.py Facebook Page dry-run/live publishing for feed/link posts
   instagram_publisher.py Instagram dry-run/live publishing for feed image posts
   inventory_sync.py    Remote inventory fetch, metadata, snapshots
   planner.py           Daily planning and spend-aware platform selection
@@ -196,6 +197,20 @@ python publish_to_x.py --file output/posts_2026-03-10_x.json --index 0 --publish
 ```
 
 By default, live publishing requires a prior approval entry unless `--force` is used.
+
+### Publish to Facebook
+
+Dry run:
+
+```bash
+python publish_to_facebook.py --file output/posts_2026-03-14_facebook.json --index 0
+```
+
+Live publish:
+
+```bash
+python publish_to_facebook.py --file output/posts_2026-03-14_facebook.json --index 0 --publish
+```
 
 Batch publish approved X posts:
 

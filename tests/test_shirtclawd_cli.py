@@ -149,6 +149,70 @@ class ShirtclawdCliTests(unittest.TestCase):
         self.assertIn("Published:", rendered)
         self.assertIn("ig123", rendered)
 
+    def test_run_ask_can_publish_generated_facebook_posts(self):
+        inventory = [
+            {
+                "shirt_id": "1",
+                "title": "Caffeinate Hydrate Inebriate Replicate",
+                "url": "https://example.com/caffeinate",
+                "image_url": "https://example.com/caffeinate.png",
+                "theme": "funny",
+                "tags": ["coffee", "alcohol"],
+                "status": "available",
+                "is_promotable": True,
+                "promotion_status": "promote",
+            }
+        ]
+
+        generated = {
+            "posts": [
+                {
+                    "shirt_id": "1",
+                    "title": "Caffeinate Hydrate Inebriate Replicate",
+                    "caption": "sample",
+                    "image_url": "https://example.com/caffeinate.png",
+                    "url": "https://example.com/caffeinate",
+                }
+            ],
+            "destination": Path("/tmp") / "posts_2026-04-04_facebook.json",
+            "history_entries": [{"shirt_id": "1"}],
+            "summary_path": Path("/tmp") / "run_summary.json",
+        }
+
+        args = Namespace(
+            prompt="Write 1 post for Facebook for the Caffeinate Hydrate Inebriate Replicate shirt",
+            inventory="ignored.json",
+            history="history.json",
+            output_dir="output",
+            seed=7,
+            ai_model="gpt-4o-mini",
+            max_ai_calls=3,
+            max_total_tokens=12000,
+            max_estimated_cost=0.02,
+            publish=True,
+        )
+
+        with patch.object(SHIRTCLAWD, "load_inventory", return_value=inventory), patch.object(
+            SHIRTCLAWD, "load_history", return_value=[]
+        ), patch.object(
+            SHIRTCLAWD, "generate_for_platform", return_value=generated
+        ), patch.object(
+            SHIRTCLAWD, "append_generated_history"
+        ) as append_mock, patch.object(
+            SHIRTCLAWD,
+            "publish_facebook_post",
+            return_value={"title": "Caffeinate Hydrate Inebriate Replicate", "facebook_post_id": "fb123"},
+        ) as publish_mock:
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                SHIRTCLAWD.run_ask(args)
+
+        append_mock.assert_called_once()
+        publish_mock.assert_called_once_with(generated["posts"][0], dry_run=False)
+        rendered = stdout.getvalue()
+        self.assertIn("Published:", rendered)
+        self.assertIn("fb123", rendered)
+
     def test_run_ask_can_publish_generated_threads_posts(self):
         inventory = [
             {
@@ -229,7 +293,7 @@ class ShirtclawdCliTests(unittest.TestCase):
         ]
 
         args = Namespace(
-            prompt="Write 1 post for Facebook for Anything",
+            prompt="Write 1 post for TikTok for Anything",
             inventory="ignored.json",
             history="history.json",
             output_dir="output",
@@ -256,7 +320,7 @@ class ShirtclawdCliTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as raised:
                 SHIRTCLAWD.run_ask(args)
 
-        self.assertIn("Direct publish is not supported for platform 'facebook'", str(raised.exception))
+        self.assertIn("Direct publish is not supported for platform 'tiktok'", str(raised.exception))
 
 
 if __name__ == "__main__":

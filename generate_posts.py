@@ -35,6 +35,7 @@ SUPPORTED_PLATFORMS = ("instagram", "facebook", "x", "bluesky", "threads", "reel
 SUPPORTED_WRITER_MODES = ("ai",)
 PUBLISH_LOG_PATHS = {
     "instagram": Path("data/instagram_publish_log.jsonl"),
+    "facebook": Path("data/facebook_publish_log.jsonl"),
     "bluesky": Path("data/bluesky_publish_log.jsonl"),
     "x": Path("data/x_publish_log.jsonl"),
     "threads": Path("data/threads_publish_log.jsonl"),

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from bot.bluesky_publisher import BlueskyPublisherError, publish_post as publish_bluesky_post
 from bot.data_loader import load_inventory
+from bot.facebook_publisher import FacebookPublisherError, publish_post as publish_facebook_post
 from bot.instagram_publisher import InstagramPublisherError, publish_post as publish_instagram_post
 from bot.nl_commands import parse_command
 from bot.post_generator import load_content_formats, load_theme_formats
@@ -112,6 +113,9 @@ def publish_generated_posts(platform, posts):
     if platform == "instagram":
         publisher = publish_instagram_post
         handled_error = InstagramPublisherError
+    elif platform == "facebook":
+        publisher = publish_facebook_post
+        handled_error = FacebookPublisherError
     elif platform == "bluesky":
         publisher = publish_bluesky_post
         handled_error = BlueskyPublisherError
@@ -152,7 +156,13 @@ def build_ask_response(parsed, shirts, generated, publish_results=None, base_dir
     if publish_results:
         lines.append("Published:")
         for result in publish_results:
-            identifier = result.get("instagram_media_id") or result.get("uri") or result.get("threads_media_id") or "ok"
+            identifier = (
+                result.get("instagram_media_id")
+                or result.get("facebook_post_id")
+                or result.get("uri")
+                or result.get("threads_media_id")
+                or "ok"
+            )
             lines.append(f"- {result.get('title', 'Untitled')} -> {identifier}")
     return "\n".join(lines)
 
