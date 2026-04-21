@@ -8,7 +8,9 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-GRAPH_BASE_URL = "https://graph.instagram.com/v24.0"
+# Instagram content publishing for professional accounts uses the Meta Graph API
+# host, not the Basic Display API host.
+GRAPH_BASE_URL = "https://graph.facebook.com/v24.0"
 DEFAULT_PUBLISH_LOG_PATH = Path("data/instagram_publish_log.jsonl")
 DEFAULT_INSTAGRAM_ACCOUNT_ID = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID", "replace_me")
 MAX_CAPTION_LENGTH = 2200
