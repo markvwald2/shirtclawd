@@ -142,7 +142,7 @@ def trim_text(text, limit):
         return text
     if limit <= 1:
         return text[:limit]
-    return text[: limit - 1].rstrip() + "…"
+    return text[: limit - 1].rstrip() + "..."
 
 
 def strip_urls(text):
