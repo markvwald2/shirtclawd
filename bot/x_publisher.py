@@ -167,6 +167,7 @@ def upload_media(image_bytes, mime_type, credentials):
         credentials=credentials,
         body=body,
         content_type=f"multipart/form-data; boundary={boundary}",
+        operation_name="media upload",
     )
     media_id = response.get("media_id_string") or str(response.get("media_id", ""))
     if not media_id:
@@ -185,13 +186,14 @@ def create_post(text, media_id, credentials):
         credentials=credentials,
         body=json.dumps(payload).encode("utf-8"),
         content_type="application/json",
+        operation_name="tweet creation",
     )
     if "data" not in response:
         raise XPublisherError(f"Unexpected X API response: {response}")
     return response
 
 
-def signed_request(method, url, credentials, body=None, content_type=None):
+def signed_request(method, url, credentials, body=None, content_type=None, operation_name="request"):
     auth_header = build_oauth_header(method, url, credentials)
     request = Request(
         url,
@@ -207,9 +209,12 @@ def signed_request(method, url, credentials, body=None, content_type=None):
             raw = response.read().decode("utf-8")
     except HTTPError as exc:
         error_body = exc.read().decode("utf-8", errors="replace")
-        raise XPublisherError(f"X API request failed: {exc.code} {error_body}") from exc
+        details = error_body.strip() or "<empty response body>"
+        raise XPublisherError(
+            f"X API {operation_name} failed: {exc.code} {method.upper()} {url} {details}"
+        ) from exc
     except URLError as exc:
-        raise XPublisherError(f"X API request failed: {exc}") from exc
+        raise XPublisherError(f"X API {operation_name} failed: {method.upper()} {url} {exc}") from exc
 
     try:
         return json.loads(raw)
