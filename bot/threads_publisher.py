@@ -6,6 +6,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from bot.data_loader import load_inventory
+
 
 THREADS_BASE_URL = "https://graph.threads.net/v1.0"
 DEFAULT_PUBLISH_LOG_PATH = Path("data/threads_publish_log.jsonl")
@@ -52,6 +54,7 @@ def select_post(posts, index=None, shirt_id=None):
 
 def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, username=None):
     text = build_threads_status(post)
+    resolved_image_url = resolve_image_url(post)
     resolved_credentials = dict(credentials or {})
     resolved_username = username or resolved_credentials.get("username") or DEFAULT_THREADS_USERNAME
     resolved_user_id = resolved_credentials.get("user_id") or os.getenv("THREADS_USER_ID", "")
@@ -63,6 +66,7 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
         "platform": "threads",
         "username": resolved_username,
         "user_id": resolved_user_id,
+        "image_url": resolved_image_url,
     }
 
     if dry_run:
@@ -75,6 +79,7 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
                 "text": text,
                 "username": resolved_username,
                 "user_id": resolved_user_id,
+                "image_url": resolved_image_url,
             },
             log_path,
         )
@@ -85,7 +90,7 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
         user_id=resolved_credentials["user_id"],
         access_token=resolved_credentials["access_token"],
         text=text,
-        image_url=post.get("image_url"),
+        image_url=resolved_image_url,
         alt_text=post.get("alt_text"),
     )
     response = publish_container(
@@ -107,6 +112,35 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
     log_publish_event(event, log_path)
     result.update(event)
     return result
+
+
+def resolve_image_url(post):
+    image_url = str(post.get("image_url") or "").strip()
+    if image_url:
+        return image_url
+
+    lookup_key = str(post.get("shirt_id") or "").strip()
+    lookup_url = str(post.get("url") or "").strip()
+    if not lookup_key and not lookup_url:
+        return ""
+
+    try:
+        inventory = load_inventory()
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        return ""
+
+    for shirt in inventory:
+        shirt_id = str(shirt.get("shirt_id") or "").strip()
+        product_url = str(shirt.get("url") or "").strip()
+        candidate = str(shirt.get("image_url") or "").strip()
+        if not candidate:
+            continue
+        if lookup_key and shirt_id == lookup_key:
+            return candidate
+        if lookup_url and product_url == lookup_url:
+            return candidate
+
+    return ""
 
 
 def build_threads_status(post, max_length=MAX_POST_LENGTH):

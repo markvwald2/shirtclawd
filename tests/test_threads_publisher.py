@@ -48,6 +48,38 @@ class ThreadsPublisherTests(unittest.TestCase):
             posts = load_posts(path)
             self.assertEqual(len(posts), 1)
 
+    @patch("bot.threads_publisher.load_inventory")
+    @patch("bot.threads_publisher.api_request")
+    def test_publish_post_recovers_missing_image_url_from_inventory(self, api_request, load_inventory):
+        api_request.side_effect = [{"id": "creation123"}, {"id": "thread456"}]
+        load_inventory.return_value = [
+            {
+                "shirt_id": "abc123",
+                "url": "https://example.com/product",
+                "image_url": "https://example.com/recovered.jpg",
+            }
+        ]
+        post = {
+            "shirt_id": "abc123",
+            "title": "Biblical Sense",
+            "caption": "Caption text",
+            "image_url": "",
+            "url": "https://example.com/product",
+            "alt_text": "Example alt text",
+        }
+
+        result = publish_post(
+            post,
+            dry_run=False,
+            credentials={"access_token": "token", "user_id": "user123"},
+            username="@3rdstringshirts",
+        )
+
+        self.assertEqual(result["image_url"], "https://example.com/recovered.jpg")
+        first_call = api_request.call_args_list[0]
+        self.assertEqual(first_call.kwargs["payload"]["media_type"], "IMAGE")
+        self.assertEqual(first_call.kwargs["payload"]["image_url"], "https://example.com/recovered.jpg")
+
     @patch("bot.threads_publisher.api_request")
     def test_publish_post_uses_image_container_when_image_url_is_present(self, api_request):
         api_request.side_effect = [{"id": "creation123"}, {"id": "thread456"}]
