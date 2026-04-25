@@ -36,6 +36,69 @@ class AIWriterTests(unittest.TestCase):
         self.assertEqual(prompt["shirt"]["target_audience"], ["church humor"])
         self.assertEqual(prompt["shirt"]["notes"], "Use carefully on broad channels.")
 
+    def test_build_user_prompt_includes_campaign_content_context(self):
+        prompt = json.loads(
+            build_user_prompt(
+                {
+                    "shirt_id": "etsy_2649334247",
+                    "title": "Coloradans Against Craft Beer",
+                    "theme": "Coloradans Against",
+                    "tags": ["colorado", "beer"],
+                    "url": "https://example.com",
+                    "image_url": "https://example.com/image.jpg",
+                    "reference_summary": "A Colorado anti-cliche joke.",
+                    "target_audience": ["Colorado locals"],
+                },
+                "instagram",
+                post_context={
+                    "campaign": "coloradans_against",
+                    "series": "Coloradans Against",
+                    "audience_lane": "colorado_regional_sarcasm",
+                    "content_goal": "conversation",
+                    "content_format": "group_chat_argument",
+                    "cta_goal": "reply",
+                    "campaign_prompt_guidance": "Invite a specific reply.",
+                    "active_offer": "25% off Coloradans Against shirts",
+                    "offer_ends_on": "2026-04-29",
+                    "secondary_offer": "20% off all other shirts",
+                },
+            )
+        )
+
+        self.assertEqual(prompt["post_context"]["campaign"], "coloradans_against")
+        self.assertEqual(prompt["post_context"]["content_goal"], "conversation")
+        self.assertIn("top-of-funnel conversation content", " ".join(prompt["requirements"]))
+        self.assertIn("specific reply prompt", " ".join(prompt["requirements"]))
+        self.assertIn("25% off Coloradans Against shirts through 2026-04-29", " ".join(prompt["requirements"]))
+        self.assertIn("20% off all other shirts", " ".join(prompt["requirements"]))
+        self.assertIn("do not force it", " ".join(prompt["requirements"]))
+
+    def test_build_user_prompt_asks_direct_offer_to_mention_active_offer(self):
+        prompt = json.loads(
+            build_user_prompt(
+                {
+                    "shirt_id": "etsy_2613432644",
+                    "title": "Coloradans Against Fourteeners",
+                    "theme": "Coloradans Against",
+                    "tags": ["colorado", "fourteeners"],
+                    "url": "https://example.com",
+                    "image_url": "https://example.com/image.jpg",
+                },
+                "threads",
+                post_context={
+                    "campaign": "coloradans_against",
+                    "content_goal": "direct_offer",
+                    "cta_goal": "buy",
+                    "active_offer": "25% off Coloradans Against shirts",
+                    "offer_ends_on": "2026-04-29",
+                },
+            )
+        )
+
+        requirements = " ".join(prompt["requirements"])
+        self.assertIn("25% off Coloradans Against shirts through 2026-04-29", requirements)
+        self.assertIn("Mention it clearly", requirements)
+
     def test_parse_response_uses_output_text_json(self):
         raw_response = json.dumps(
             {

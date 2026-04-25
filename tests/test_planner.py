@@ -69,6 +69,36 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(plan["planned_posts"], [])
         self.assertEqual(plan["estimates"]["planned_capacity"], 0)
 
+    def test_build_daily_plan_can_target_coloradans_against_campaign(self):
+        inventory = [
+            {"shirt_id": "1", "title": "Coloradans Against Craft Beer", "status": "available", "theme": "Coloradans Against", "tags": ["colorado", "beer"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "2", "title": "Coloradans Against Hiking", "status": "available", "theme": "Coloradans Against", "tags": ["colorado", "hiking"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "3", "title": "Ski in your Jeans", "status": "available", "theme": "skiing", "tags": ["ski"], "is_promotable": True, "promotion_status": "promote"},
+        ]
+
+        plan = build_daily_plan(
+            inventory=inventory,
+            history=[],
+            pricing={"gpt-4o-mini": {"input_per_1m": 0.15, "output_per_1m": 0.6}},
+            ai_model="gpt-4o-mini",
+            plan_date="2026-03-14",
+            platforms=["instagram", "bluesky"],
+            max_estimated_cost=1.0,
+            approval_required=False,
+            campaign="coloradans_against",
+        )
+
+        self.assertEqual(plan["campaign"], "coloradans_against")
+        self.assertEqual([post["shirt_id"] for post in plan["planned_posts"]], ["1", "2"])
+        self.assertTrue(all(post["campaign"] == "coloradans_against" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["series"] == "Coloradans Against" for post in plan["planned_posts"]))
+        self.assertEqual(plan["planned_posts"][0]["content_goal"], "conversation")
+        self.assertEqual(plan["planned_posts"][0]["cta_goal"], "reply")
+        self.assertEqual(plan["planned_posts"][1]["content_format"], "pick_your_enemy")
+        self.assertTrue(all(post["active_offer"] == "25% off Coloradans Against shirts" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["offer_ends_on"] == "2026-04-29" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["secondary_offer"] == "20% off all other shirts" for post in plan["planned_posts"]))
+
 
 if __name__ == "__main__":
     unittest.main()

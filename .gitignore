@@ -1,3 +1,11 @@
 .env
 __pycache__/
 .DS_Store
+
+# Generated publish logs
+data/*_publish_log.jsonl
+
+# Generated post artifacts and run summaries
+output/daily_plan_*_manual_now.json
+output/posts_*.json
+output/run_*_summary.json

@@ -82,12 +82,20 @@ class AIWriterError(RuntimeError):
     pass
 
 
-def generate_post_components(shirt, platform, api_key=None, model=DEFAULT_AI_MODEL, timeout=45, recent_posts=None):
+def generate_post_components(
+    shirt,
+    platform,
+    api_key=None,
+    model=DEFAULT_AI_MODEL,
+    timeout=45,
+    recent_posts=None,
+    post_context=None,
+):
     resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
     if not resolved_api_key:
         raise AIWriterError("OPENAI_API_KEY is not set.")
 
-    prompt = build_user_prompt(shirt, platform, recent_posts=recent_posts)
+    prompt = build_user_prompt(shirt, platform, recent_posts=recent_posts, post_context=post_context)
     payload = {
         "model": model,
         "input": [
@@ -151,7 +159,7 @@ def generate_post_components(shirt, platform, api_key=None, model=DEFAULT_AI_MOD
     return parse_response(raw_response)
 
 
-def build_user_prompt(shirt, platform, recent_posts=None):
+def build_user_prompt(shirt, platform, recent_posts=None, post_context=None):
     tone = str(shirt.get("tone", "")).strip()
     theme = str(shirt.get("theme", "")).strip()
     variation_hint = random.choice(STYLE_VARIATION_HINTS)
@@ -163,6 +171,8 @@ def build_user_prompt(shirt, platform, recent_posts=None):
         "bluesky": "Do not rely on a pasted raw URL in the caption. Write clean copy; the publisher will attach the destination separately.",
     }
     repetition_guidance = build_repetition_guidance(platform, recent_posts or [])
+    normalized_context = normalize_post_context(post_context)
+    content_guidance = build_content_goal_guidance(normalized_context)
     return json.dumps(
         {
             "task": "Generate one JSON social post.",
@@ -190,6 +200,7 @@ def build_user_prompt(shirt, platform, recent_posts=None):
                 "tone_notes": shirt.get("tone_notes", ""),
                 "notes": shirt.get("notes", ""),
             },
+            "post_context": normalized_context,
             "requirements": [
                 "Pick the most effective angle for this specific shirt.",
                 "Write a custom headline and caption, not a template.",
@@ -198,11 +209,101 @@ def build_user_prompt(shirt, platform, recent_posts=None):
                 "Use the brand voice, theme tone guidance, tone preset, and tone notes when they are provided.",
                 "Honor the variation hint so the writing does not feel repetitive from post to post.",
                 "Favor dry specificity over cheerful sales copy.",
+                content_guidance,
                 platform_url_guidance.get(platform, "Include the product URL in the caption."),
                 repetition_guidance,
                 "Return JSON only."
             ]
         }
+    )
+
+
+def normalize_post_context(post_context):
+    if not isinstance(post_context, dict):
+        return {}
+
+    keys = (
+        "campaign",
+        "series",
+        "audience_lane",
+        "content_goal",
+        "content_format",
+        "cta_goal",
+        "campaign_prompt_guidance",
+        "campaign_strategy_note",
+        "active_offer",
+        "discount_percent",
+        "offer_scope",
+        "offer_ends_on",
+        "secondary_offer",
+    )
+    return {
+        key: str(post_context.get(key, "")).strip()
+        for key in keys
+        if str(post_context.get(key, "")).strip()
+    }
+
+
+def build_content_goal_guidance(post_context):
+    content_goal = post_context.get("content_goal", "")
+    cta_goal = post_context.get("cta_goal", "")
+    campaign_guidance = post_context.get("campaign_prompt_guidance", "")
+    strategy_note = post_context.get("campaign_strategy_note", "")
+
+    goal_guidance = {
+        "conversation": (
+            "This is top-of-funnel conversation content. Do not lead with a purchase ask. "
+            "Create replies, shares, or playful disagreement before mentioning the shirt."
+        ),
+        "product_connected": (
+            "This is middle-of-funnel series content. Tie the joke to the shirt or campaign, "
+            "but keep the post useful as entertainment even if nobody clicks."
+        ),
+        "direct_offer": (
+            "This is conversion content. A purchase CTA is allowed, but keep it specific, dry, "
+            "and native to the joke instead of generic merch copy."
+        ),
+    }.get(content_goal, "Match the requested content goal when one is provided.")
+
+    cta_guidance = {
+        "reply": "End with a specific reply prompt, not a vague engagement question.",
+        "share": "Make the post easy to send to a friend or local page without asking too hard.",
+        "vote": "Ask people to vote, nominate, or choose the next target in the series.",
+        "buy": "Use a clear but non-desperate purchase prompt if it fits the platform.",
+    }.get(cta_goal, "")
+
+    parts = [goal_guidance]
+    if cta_guidance:
+        parts.append(cta_guidance)
+    if campaign_guidance:
+        parts.append(campaign_guidance)
+    if strategy_note:
+        parts.append(strategy_note)
+    offer_guidance = build_offer_guidance(post_context)
+    if offer_guidance:
+        parts.append(offer_guidance)
+    return " ".join(parts)
+
+
+def build_offer_guidance(post_context):
+    active_offer = post_context.get("active_offer", "")
+    if not active_offer:
+        return ""
+
+    ends_on = post_context.get("offer_ends_on", "")
+    secondary_offer = post_context.get("secondary_offer", "")
+    content_goal = post_context.get("content_goal", "")
+    cta_goal = post_context.get("cta_goal", "")
+    expiration = f" through {ends_on}" if ends_on else ""
+    secondary = f" A secondary storewide offer is {secondary_offer}." if secondary_offer else ""
+    if content_goal == "direct_offer" or cta_goal == "buy":
+        return (
+            f"The current offer is {active_offer}{expiration}. Mention it clearly if this post asks "
+            f"for the sale, while keeping the voice dry and non-desperate.{secondary}"
+        )
+    return (
+        f"The current offer is {active_offer}{expiration}, but do not force it into this post unless "
+        f"it supports the assigned content goal without turning the post into an ad.{secondary}"
     )
 
 

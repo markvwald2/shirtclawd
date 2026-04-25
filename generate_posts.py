@@ -196,6 +196,7 @@ def generate_for_platform(
         run_context=run_context,
         pricing=pricing,
         recent_posts=recent_posts,
+        plan_entries=plan_entries,
     )
 
     if plan_entries:
@@ -246,6 +247,17 @@ def load_daily_plan(path):
 def plan_metadata(entry, plan_date):
     return {
         "plan_slot": entry.get("slot"),
+        "campaign": entry.get("campaign"),
+        "series": entry.get("series"),
+        "audience_lane": entry.get("audience_lane"),
+        "content_goal": entry.get("content_goal"),
+        "content_format": entry.get("content_format"),
+        "cta_goal": entry.get("cta_goal"),
+        "active_offer": entry.get("active_offer"),
+        "discount_percent": entry.get("discount_percent"),
+        "offer_scope": entry.get("offer_scope"),
+        "offer_ends_on": entry.get("offer_ends_on"),
+        "secondary_offer": entry.get("secondary_offer"),
         "approval_required": bool(entry.get("approval_required")),
         "approval_status": entry.get("approval_status", "pending"),
         "planned_platform": entry.get("platform"),
@@ -264,6 +276,7 @@ def build_posts_for_mode(
     run_context,
     pricing,
     recent_posts=None,
+    plan_entries=None,
 ):
     validate_writer_mode(writer_mode)
 
@@ -294,11 +307,13 @@ def build_posts_for_mode(
 
         started = time.perf_counter()
         try:
+            post_context = plan_entries[len(posts)] if plan_entries else None
             response = generate_post_components(
                 shirt=shirt,
                 platform=platform,
                 model=ai_model,
                 recent_posts=recent_posts,
+                post_context=post_context,
             )
             latency_ms = round((time.perf_counter() - started) * 1000, 2)
             post = build_ai_post(shirt, response["components"], content_formats, platform, rng)

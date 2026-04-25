@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 
-from bot.selector import select_shirts
+from bot.campaigns import apply_campaign_metadata, resolve_campaign
+from bot.selector import select_matching_shirts, select_shirts
 
 
 DEFAULT_PLATFORMS = ("x", "instagram", "facebook", "bluesky")
@@ -20,8 +21,10 @@ def build_daily_plan(
     approval_required=True,
     expected_input_tokens=DEFAULT_ESTIMATED_INPUT_TOKENS,
     expected_output_tokens=DEFAULT_ESTIMATED_OUTPUT_TOKENS,
+    campaign=None,
 ):
     normalized_platforms = normalize_platforms(platforms)
+    campaign_definition = resolve_campaign(campaign)
     resolved_plan_date = resolve_plan_date(plan_date)
     estimated_ai_cost = estimate_ai_post_cost_usd(
         pricing=pricing,
@@ -34,23 +37,30 @@ def build_daily_plan(
         max_estimated_cost=max_estimated_cost,
         estimated_ai_cost_per_post=estimated_ai_cost,
     )
-    selected = select_shirts(inventory, history, planned_capacity)
+    if campaign_definition:
+        selected = select_matching_shirts(
+            inventory,
+            history,
+            planned_capacity,
+            campaign_definition["query"],
+        )
+    else:
+        selected = select_shirts(inventory, history, planned_capacity)
 
     planned_posts = []
     for index, shirt in enumerate(selected):
-        planned_posts.append(
-            {
-                "slot": index + 1,
-                "platform": normalized_platforms[index],
-                "shirt_id": shirt["shirt_id"],
-                "title": shirt["title"],
-                "theme": shirt.get("theme", ""),
-                "writer_mode": "ai",
-                "approval_required": approval_required,
-                "approval_status": "pending" if approval_required else "not_required",
-                "estimated_ai_cost_usd": estimated_ai_cost,
-            }
-        )
+        plan_entry = {
+            "slot": index + 1,
+            "platform": normalized_platforms[index],
+            "shirt_id": shirt["shirt_id"],
+            "title": shirt["title"],
+            "theme": shirt.get("theme", ""),
+            "writer_mode": "ai",
+            "approval_required": approval_required,
+            "approval_status": "pending" if approval_required else "not_required",
+            "estimated_ai_cost_usd": estimated_ai_cost,
+        }
+        planned_posts.append(apply_campaign_metadata(plan_entry, campaign_definition, index))
 
     estimated_total_cost = None
     if estimated_ai_cost is not None:
@@ -62,6 +72,7 @@ def build_daily_plan(
         "platforms_considered": normalized_platforms,
         "ai_model": ai_model,
         "writer_mode": "ai",
+        "campaign": campaign_definition["campaign"] if campaign_definition else None,
         "approval_required_by_default": approval_required,
         "constraints": {
             "max_estimated_cost_usd": max_estimated_cost,

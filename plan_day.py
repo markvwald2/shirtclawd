@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--max-estimated-cost", type=float, default=DEFAULT_DAILY_SPEND_LIMIT_USD)
     parser.add_argument("--expected-input-tokens", type=int, default=DEFAULT_ESTIMATED_INPUT_TOKENS)
     parser.add_argument("--expected-output-tokens", type=int, default=DEFAULT_ESTIMATED_OUTPUT_TOKENS)
+    parser.add_argument("--campaign", help="Optional campaign mode, e.g. coloradans_against.")
     parser.add_argument("--approval-required", dest="approval_required", action="store_true")
     parser.add_argument("--no-approval-required", dest="approval_required", action="store_false")
     parser.set_defaults(approval_required=True)
@@ -47,6 +48,7 @@ def main():
         approval_required=args.approval_required,
         expected_input_tokens=args.expected_input_tokens,
         expected_output_tokens=args.expected_output_tokens,
+        campaign=args.campaign,
     )
     destination = write_daily_plan(plan, args.output_dir)
 

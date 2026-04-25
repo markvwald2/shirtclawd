@@ -582,5 +582,187 @@
       "lacrosse rivalry humor fans"
     ],
     "notes": ""
+  },
+  "5d89cc121cbf3a25d594e6f4": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A joke that works as either a weird brag from someone with oversized vehicles or a sincere statement from somebody who just really loves boats. Part of the humor is that the phrase makes less and less sense the longer you sit with it.",
+    "target_audience": [
+      "boat owners and boating fans",
+      "people who like absurd bumper-sticker humor",
+      "fans of nonsense brag jokes"
+    ],
+    "tone": "absurd_deadpan",
+    "tone_notes": "Keep it straight-faced and slightly macho. The joke lands best when it is treated like a perfectly reasonable flex even though it makes almost no sense.",
+    "notes": ""
+  },
+  "5d89cc1ff937647d81ffbd79": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A joke about an unemployed guy who watches TV all day and, lacking much else going for him, hopes someone out there has a sexual fetish for unemployed people.",
+    "target_audience": [
+      "fans of bleak dating humor",
+      "people who like self-deprecating jokes",
+      "TV and couch-potato humor fans"
+    ],
+    "tone": "bleak_self_deprecating",
+    "tone_notes": "Keep it dry and matter-of-fact. The joke lands best when it sounds like a pathetic but sincere personal ad.",
+    "notes": ""
+  },
+  "5d89cc306bbdbb2e6a46cb4b": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A visual wordplay joke on the phrase 'get the fuck out,' swapping in 'flock' because the design features a sheep.",
+    "target_audience": [
+      "fans of animal puns",
+      "people who like clean-looking dirty jokes",
+      "wordplay humor fans"
+    ],
+    "tone": "playful_visual_pun",
+    "tone_notes": "Keep it light and amused. Let the sheep-based swap do the work instead of overexplaining the joke.",
+    "notes": ""
+  },
+  "5d89cc12162c5f464e738698": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A gross-out wordplay riff on 'self-deprecating sense of humor,' replacing it with 'self defecating' for a poop joke. The monkey adds to the gag, partly because monkeys are stereotypically associated with throwing feces.",
+    "target_audience": [
+      "fans of gross-out humor",
+      "people who like dumb phrase-twist jokes",
+      "animal joke fans"
+    ],
+    "tone": "juvenile_wordplay",
+    "tone_notes": "Keep it silly and lowbrow. The humor works best when treated like a proudly stupid misread of a familiar phrase.",
+    "notes": ""
+  },
+  "5d89cbde13615160bf6ea477": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A double-meaning joke about fencing being 'pointless': both that there is no point in doing it, and that fencing weapons use blunted tips rather than sharp points.",
+    "target_audience": [
+      "fencing fans",
+      "sports pun fans",
+      "people who like literal double-entendre jokes"
+    ],
+    "tone": "dry_sports_wordplay",
+    "tone_notes": "Keep it crisp and a little deadpan. The joke lands through the double meaning, not through hype.",
+    "notes": ""
+  },
+  "5d89cc02b4b8c76e3916f309": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A visual pun on the famous 'coffee is for closers' line from Glengarry Glen Ross, replacing 'coffee' with Franz Kafka.",
+    "target_audience": [
+      "Glengarry Glen Ross fans",
+      "literary pun fans",
+      "people who like smart-stupid wordplay"
+    ],
+    "tone": "reference_nerd_wordplay",
+    "tone_notes": "Play it straight and let the absurd substitution carry the joke. It should feel like a smug little mashup of highbrow literature and aggressive sales-movie dialogue.",
+    "notes": ""
+  },
+  "5d89cc1f13615160bf6ed394": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "An absurd geology joke featuring Pangaea, framed as if someone nostalgically misses the time when all the continents were still connected.",
+    "target_audience": [
+      "geography and geology nerds",
+      "fans of absurd deadpan humor",
+      "people who like map-based jokes"
+    ],
+    "tone": "absurd_deadpan",
+    "tone_notes": "Keep it dry and slightly wistful. The joke works because it treats continental drift like a personal nostalgia issue.",
+    "notes": ""
+  },
+  "5d89cc1220517626420dcda3": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A wordplay joke built around how 'went amok' sounds like 'Winnemucca,' turning it into the phrase 'I went amok in Winnemucca.'",
+    "target_audience": [
+      "fans of phonetic wordplay",
+      "geography joke fans",
+      "people who like dumb place-name humor"
+    ],
+    "tone": "goofy_phonetic_pun",
+    "tone_notes": "Keep it breezy and a little ridiculous. The joke is purely in the sound of the phrase, so avoid making it feel more meaningful than it is.",
+    "notes": ""
+  },
+  "5d89cbe06bbdbb2e6a4696f5": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A double-meaning joke on the military term 'dishonorable discharge,' paired with artwork of a man peeing his pants so the 'discharge' is literal as well as disgraceful.",
+    "target_audience": [
+      "fans of literal phrase jokes",
+      "people who like lowbrow double meanings",
+      "military-term wordplay fans"
+    ],
+    "tone": "lowbrow_literal_wordplay",
+    "tone_notes": "Keep it blunt and matter-of-fact. The humor comes from taking a serious phrase in the dumbest possible literal direction.",
+    "notes": ""
+  },
+  "5d89cbf3162c5f464e73648a": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A graphic double-reading joke: the design looks like a normal BLT sandwich at first glance, but the visible letters actually stand for the sexual phrase 'I want to B my L on your T.'",
+    "target_audience": [
+      "fans of filthy visual wordplay",
+      "people who like shock-value jokes",
+      "adult humor fans"
+    ],
+    "tone": "graphic_double_entendre",
+    "tone_notes": "Keep it blunt and unembarrassed. The joke works because it hides an explicit line inside something that initially looks harmless.",
+    "notes": ""
+  },
+  "5d89cc126bbdbb2e6a46b6cb": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A crude visual wordplay joke telling someone to 'grow one,' with artwork of a sack to imply 'grow a sack' in the sense of having more guts or balls.",
+    "target_audience": [
+      "fans of blunt insult humor",
+      "people who like visual double meanings",
+      "lowbrow wordplay fans"
+    ],
+    "tone": "blunt_crude_wordplay",
+    "tone_notes": "Keep it direct and a little confrontational. The joke is a simple visualized insult, so it should stay short and punchy.",
+    "notes": ""
+  },
+  "5d89cc14162c5f464e738747": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A clean graphic take on the Colorado state flag, playing off the local belief that everything about Colorado is the best, including its flag.",
+    "target_audience": [
+      "Colorado locals",
+      "state flag design fans",
+      "people with Colorado pride"
+    ],
+    "tone": "confident_regional_pride",
+    "tone_notes": "Keep it admiring on the surface but quietly condescending toward Colorado locals. The voice should play into the stereotype that Coloradans are smug, self-satisfied, and convinced their state has already solved life better than everyone else.",
+    "notes": ""
+  },
+  "5d89cc20b4b8c76e39170892": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A clean graphic version of the Arizona state flag, leaning into how Arizonans put that flag on just about everything and seem disproportionately proud of it.",
+    "target_audience": [
+      "Arizona locals",
+      "state flag enthusiasts",
+      "people who like regional design pride"
+    ],
+    "tone": "wry_regional_pride",
+    "tone_notes": "Keep it lightly mocking and a little condescending toward Arizona locals. Lean into the stereotype that Arizonans are weirdly overcommitted to branding themselves around desert identity and will slap the flag on anything because they think living in brutal heat is a personality.",
+    "notes": ""
+  },
+  "5d89cbe2162c5f464e735a5d": {
+    "promotion_status": "promote",
+    "is_promotable": true,
+    "reference_summary": "A clean graphic take on the Maryland state flag, highlighting a design that is visually busy but unmistakable, and beloved by people from Maryland.",
+    "target_audience": [
+      "Maryland locals",
+      "state flag design fans",
+      "people with strong regional pride"
+    ],
+    "tone": "affectionate_regional_pride",
+    "tone_notes": "Keep it appreciative of the design but condescending toward Maryland locals. Play into the stereotype that Marylanders are irrationally intense about their flag and treat this busy heraldic pattern like the greatest visual achievement in American history.",
+    "notes": ""
   }
 }

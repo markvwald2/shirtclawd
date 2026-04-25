@@ -105,6 +105,26 @@ python plan_day.py \
   --max-estimated-cost 1.0
 ```
 
+Campaign mode can pin the day to a specific audience lane instead of broad catalog rotation:
+
+```bash
+python plan_day.py \
+  --campaign coloradans_against \
+  --platform bluesky \
+  --platform instagram \
+  --platform facebook \
+  --platform threads \
+  --no-approval-required
+```
+
+The scheduled daily workflow defaults to this campaign and auto-publishes the generated posts:
+
+```bash
+scripts/run_daily_workflow.sh
+```
+
+Set `AUTO_PUBLISH=0` to generate without publishing, or override `PLATFORMS` with a space-separated list.
+
 ### Generate Posts
 
 ```bash
@@ -275,13 +295,14 @@ ClawdBot follows a simple pipeline:
 3. Merge local annotations from `data/shirt_annotations.json`.
 4. Load promotion history from `data/promotion_history.json`.
 5. Build a daily plan that chooses platforms and shirts within the estimated AI spend limit.
-6. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
-7. Generate copy with OpenAI.
-8. Apply platform-specific formatting rules.
-9. Write the post batch and update `output/post_index.json`.
-10. Append promotion history entries.
-11. Log AI usage events and write a per-run summary.
-12. Optionally approve and publish individual X posts later.
+6. Optionally apply campaign metadata such as `coloradans_against`, content goals, CTA goals, and audience lane.
+7. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
+8. Generate copy with OpenAI.
+9. Apply platform-specific formatting rules.
+10. Write the post batch and update `output/post_index.json`.
+11. Append promotion history entries.
+12. Log AI usage events and write a per-run summary.
+13. Optionally approve and publish individual X posts later.
 
 ## Configuration
 
@@ -297,6 +318,14 @@ ClawdBot follows a simple pipeline:
 - whether hashtags are appended to captions
 - headline prefixes
 - CTA suffixes
+
+### Campaign Modes
+
+`bot/campaigns.py` defines campaign lanes that can override broad shirt rotation.
+
+Current campaign:
+
+- `coloradans_against`: selects the `Coloradans Against` shirts, adds campaign/series/audience metadata, includes the current 25% off Coloradans Against / 20% off all other shirts offer through April 29, 2026, and rotates content goals across conversation, shareable local argument, series spotlight, and direct offer posts.
 
 ### Model Pricing
 

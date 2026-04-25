@@ -57,7 +57,24 @@ class GenerateFromPlanTests(unittest.TestCase):
                         "writer_mode": "ai",
                         "planned_posts": [
                             {"slot": 1, "platform": "x", "shirt_id": "1", "approval_required": True, "approval_status": "pending"},
-                            {"slot": 2, "platform": "instagram", "shirt_id": "2", "approval_required": True, "approval_status": "pending"},
+                            {
+                                "slot": 2,
+                                "platform": "instagram",
+                                "shirt_id": "2",
+                                "approval_required": True,
+                                "approval_status": "pending",
+                                "campaign": "coloradans_against",
+                                "series": "Coloradans Against",
+                                "audience_lane": "colorado_regional_sarcasm",
+                                "content_goal": "conversation",
+                                "content_format": "group_chat_argument",
+                                "cta_goal": "reply",
+                                "active_offer": "25% off Coloradans Against shirts",
+                                "discount_percent": 25,
+                                "offer_scope": "Coloradans Against shirts",
+                                "offer_ends_on": "2026-04-29",
+                                "secondary_offer": "20% off all other shirts",
+                            },
                         ],
                     }
                 )
@@ -87,7 +104,7 @@ class GenerateFromPlanTests(unittest.TestCase):
                     },
                     "usage": {},
                 },
-            ):
+            ) as generate_mock:
                 GENERATE_POSTS.generate_from_plan(
                     args=args,
                     inventory=inventory,
@@ -107,6 +124,18 @@ class GenerateFromPlanTests(unittest.TestCase):
             self.assertEqual(x_posts[0]["approval_status"], "pending")
             self.assertEqual(instagram_posts[0]["plan_slot"], 2)
             self.assertEqual(instagram_posts[0]["planned_platform"], "instagram")
+            self.assertEqual(instagram_posts[0]["campaign"], "coloradans_against")
+            self.assertEqual(instagram_posts[0]["content_goal"], "conversation")
+            self.assertEqual(instagram_posts[0]["cta_goal"], "reply")
+            self.assertEqual(instagram_posts[0]["active_offer"], "25% off Coloradans Against shirts")
+            self.assertEqual(instagram_posts[0]["offer_ends_on"], "2026-04-29")
+            self.assertEqual(instagram_posts[0]["secondary_offer"], "20% off all other shirts")
+            instagram_call = [
+                call for call in generate_mock.call_args_list if call.kwargs["platform"] == "instagram"
+            ][0]
+            self.assertEqual(instagram_call.kwargs["post_context"]["campaign"], "coloradans_against")
+            self.assertEqual(instagram_call.kwargs["post_context"]["content_format"], "group_chat_argument")
+            self.assertEqual(instagram_call.kwargs["post_context"]["active_offer"], "25% off Coloradans Against shirts")
 
             history = load_history(history_path)
             self.assertEqual(len(history), 2)

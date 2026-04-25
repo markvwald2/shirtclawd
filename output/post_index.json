@@ -1,6 +1,445 @@
 {
   "files": [
     {
+      "path": "output/posts_2026-04-25_threads_20260425T203749Z_e3215385.json",
+      "filename": "posts_2026-04-25_threads_20260425T203749Z_e3215385.json",
+      "platform": "threads",
+      "post_count": 1,
+      "titles": [
+        "Coloradans Against Fourteeners"
+      ],
+      "run_id": "run_20260425T203749Z_e3215385"
+    },
+    {
+      "path": "output/posts_2026-04-25_threads_20260425T200820Z_7e4344b4.json",
+      "filename": "posts_2026-04-25_threads_20260425T200820Z_7e4344b4.json",
+      "platform": "threads",
+      "post_count": 1,
+      "titles": [
+        "No Yo In Equipo"
+      ],
+      "run_id": "run_20260425T200820Z_7e4344b4"
+    },
+    {
+      "path": "output/posts_2026-04-25_instagram_20260425T203741Z_683efeb0.json",
+      "filename": "posts_2026-04-25_instagram_20260425T203741Z_683efeb0.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Coloradans Against Craft Beer"
+      ],
+      "run_id": "run_20260425T203741Z_683efeb0"
+    },
+    {
+      "path": "output/posts_2026-04-25_instagram_20260425T200814Z_d271c8ee.json",
+      "filename": "posts_2026-04-25_instagram_20260425T200814Z_d271c8ee.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Beer Is Proof"
+      ],
+      "run_id": "run_20260425T200814Z_d271c8ee"
+    },
+    {
+      "path": "output/posts_2026-04-25_facebook_20260425T203745Z_1a1d2a01.json",
+      "filename": "posts_2026-04-25_facebook_20260425T203745Z_1a1d2a01.json",
+      "platform": "facebook",
+      "post_count": 1,
+      "titles": [
+        "Coloradans Against Triathlons"
+      ],
+      "run_id": "run_20260425T203745Z_1a1d2a01"
+    },
+    {
+      "path": "output/posts_2026-04-25_facebook_20260425T200817Z_36a602cd.json",
+      "filename": "posts_2026-04-25_facebook_20260425T200817Z_36a602cd.json",
+      "platform": "facebook",
+      "post_count": 1,
+      "titles": [
+        "BLT"
+      ],
+      "run_id": "run_20260425T200817Z_36a602cd"
+    },
+    {
+      "path": "output/posts_2026-04-25_bluesky_20260425T203737Z_f1dbc592.json",
+      "filename": "posts_2026-04-25_bluesky_20260425T203737Z_f1dbc592.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Coloradans Against Hiking"
+      ],
+      "run_id": "run_20260425T203737Z_f1dbc592"
+    },
+    {
+      "path": "output/posts_2026-04-25_bluesky_20260425T200805Z_d0050c28.json",
+      "filename": "posts_2026-04-25_bluesky_20260425T200805Z_d0050c28.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Bloody Mary, Steak Sandwich, Steak Sandwich"
+      ],
+      "run_id": "run_20260425T200805Z_d0050c28"
+    },
+    {
+      "path": "output/posts_2026-04-24_threads_20260424T132742Z_5b4a2f95.json",
+      "filename": "posts_2026-04-24_threads_20260424T132742Z_5b4a2f95.json",
+      "platform": "threads",
+      "post_count": 3,
+      "titles": [
+        "Ladies Love My Self Defecating Sense of Humor",
+        "Kafka is for Closers",
+        "Winnemucca"
+      ],
+      "run_id": "run_20260424T132742Z_5b4a2f95"
+    },
+    {
+      "path": "output/posts_2026-04-24_instagram_20260424T132716Z_9fc669c7.json",
+      "filename": "posts_2026-04-24_instagram_20260424T132716Z_9fc669c7.json",
+      "platform": "instagram",
+      "post_count": 3,
+      "titles": [
+        "Ctrl + Alt + Country",
+        "My Other Car Is A Boat",
+        "Community Chest"
+      ],
+      "run_id": "run_20260424T132716Z_9fc669c7"
+    },
+    {
+      "path": "output/posts_2026-04-24_facebook_20260424T132730Z_f8726d7f.json",
+      "filename": "posts_2026-04-24_facebook_20260424T132730Z_f8726d7f.json",
+      "platform": "facebook",
+      "post_count": 3,
+      "titles": [
+        "Biblical Sense",
+        "Coloradans Against Craft Beer",
+        "Breaking Wind"
+      ],
+      "run_id": "run_20260424T132730Z_f8726d7f"
+    },
+    {
+      "path": "output/posts_2026-04-24_bluesky_20260424T132659Z_b8970952.json",
+      "filename": "posts_2026-04-24_bluesky_20260424T132659Z_b8970952.json",
+      "platform": "bluesky",
+      "post_count": 3,
+      "titles": [
+        "Maryland state flag",
+        "Michael Garrett Cullen Jason",
+        "Coloradans Against Fourteeners"
+      ],
+      "run_id": "run_20260424T132659Z_b8970952"
+    },
+    {
+      "path": "output/posts_2026-04-21_threads_20260421T133701Z_2a20d322.json",
+      "filename": "posts_2026-04-21_threads_20260421T133701Z_2a20d322.json",
+      "platform": "threads",
+      "post_count": 3,
+      "titles": [
+        "Bells Beach",
+        "Beer Is Proof",
+        "Unemployment Fetish"
+      ],
+      "run_id": "run_20260421T133701Z_2a20d322"
+    },
+    {
+      "path": "output/posts_2026-04-21_instagram_20260421T133701Z_54c4f2c1.json",
+      "filename": "posts_2026-04-21_instagram_20260421T133701Z_54c4f2c1.json",
+      "platform": "instagram",
+      "post_count": 3,
+      "titles": [
+        "Bells Beach",
+        "Beer Is Proof",
+        "Unemployment Fetish"
+      ],
+      "run_id": "run_20260421T133701Z_54c4f2c1"
+    },
+    {
+      "path": "output/posts_2026-04-21_facebook_20260421T133701Z_f98fc0ea.json",
+      "filename": "posts_2026-04-21_facebook_20260421T133701Z_f98fc0ea.json",
+      "platform": "facebook",
+      "post_count": 3,
+      "titles": [
+        "Bells Beach",
+        "Beer Is Proof",
+        "Unemployment Fetish"
+      ],
+      "run_id": "run_20260421T133701Z_f98fc0ea"
+    },
+    {
+      "path": "output/posts_2026-04-21_bluesky_20260421T133646Z_6a3aeb03.json",
+      "filename": "posts_2026-04-21_bluesky_20260421T133646Z_6a3aeb03.json",
+      "platform": "bluesky",
+      "post_count": 3,
+      "titles": [
+        "I Just Crapped Myself",
+        "Aesop's Fables",
+        "Ladies Love My Self Defecating Sense of Humor"
+      ],
+      "run_id": "run_20260421T133646Z_6a3aeb03"
+    },
+    {
+      "path": "output/posts_2026-04-19_facebook_20260419T045522Z_a22fb21d.json",
+      "filename": "posts_2026-04-19_facebook_20260419T045522Z_a22fb21d.json",
+      "platform": "facebook",
+      "post_count": 1,
+      "titles": [
+        "Whip It"
+      ],
+      "run_id": "run_20260419T045522Z_a22fb21d"
+    },
+    {
+      "path": "output/posts_2026-04-19_facebook_20260419T035836Z_35bfe139.json",
+      "filename": "posts_2026-04-19_facebook_20260419T035836Z_35bfe139.json",
+      "platform": "facebook",
+      "post_count": 1,
+      "titles": [
+        "Breaking Wind"
+      ],
+      "run_id": "run_20260419T035836Z_35bfe139"
+    },
+    {
+      "path": "output/posts_2026-04-18_threads_20260418T144130Z_b340289a.json",
+      "filename": "posts_2026-04-18_threads_20260418T144130Z_b340289a.json",
+      "platform": "threads",
+      "post_count": 2,
+      "titles": [
+        "Coloradans Against Triathlons",
+        "Coloradans Against Craft Beer"
+      ],
+      "run_id": "run_20260418T144130Z_b340289a"
+    },
+    {
+      "path": "output/posts_2026-04-17_threads_20260417T150258Z_1978cdb7.json",
+      "filename": "posts_2026-04-17_threads_20260417T150258Z_1978cdb7.json",
+      "platform": "threads",
+      "post_count": 10,
+      "titles": [
+        "Community Chest",
+        "Biblical Sense",
+        "Coloradans Against Hiking",
+        "Coloradans Against Craft Beer",
+        "Vince"
+      ],
+      "run_id": "run_20260417T150258Z_1978cdb7"
+    },
+    {
+      "path": "output/posts_2026-04-17_threads_20260417T141156Z_8832d9e6.json",
+      "filename": "posts_2026-04-17_threads_20260417T141156Z_8832d9e6.json",
+      "platform": "threads",
+      "post_count": 1,
+      "titles": [
+        "Beer Is Proof"
+      ],
+      "run_id": "run_20260417T141156Z_8832d9e6"
+    },
+    {
+      "path": "output/posts_2026-04-15_x_20260415T190433Z_041167dd.json",
+      "filename": "posts_2026-04-15_x_20260415T190433Z_041167dd.json",
+      "platform": "x",
+      "post_count": 1,
+      "titles": [
+        "Right Turn Clyde"
+      ],
+      "run_id": "run_20260415T190433Z_041167dd"
+    },
+    {
+      "path": "output/posts_2026-04-15_instagram_20260415T184147Z_2e30f401.json",
+      "filename": "posts_2026-04-15_instagram_20260415T184147Z_2e30f401.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Beer Before Liquor... Sailor's Delight"
+      ],
+      "run_id": "run_20260415T184147Z_2e30f401"
+    },
+    {
+      "path": "output/posts_2026-04-15_bluesky_20260415T184147Z_9f744ee5.json",
+      "filename": "posts_2026-04-15_bluesky_20260415T184147Z_9f744ee5.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Beer Before Liquor... Sailor's Delight"
+      ],
+      "run_id": "run_20260415T184147Z_9f744ee5"
+    },
+    {
+      "path": "output/posts_2026-04-12_instagram_20260413T010757Z_58152457.json",
+      "filename": "posts_2026-04-12_instagram_20260413T010757Z_58152457.json",
+      "platform": "instagram",
+      "post_count": 3,
+      "titles": [
+        "Arizona state flag",
+        "Ladies Love My Self Defecating Sense of Humor",
+        "My Other Car Is A Boat"
+      ],
+      "run_id": "run_20260413T010757Z_58152457"
+    },
+    {
+      "path": "output/posts_2026-04-12_bluesky_20260413T010817Z_3a0454ab.json",
+      "filename": "posts_2026-04-12_bluesky_20260413T010817Z_3a0454ab.json",
+      "platform": "bluesky",
+      "post_count": 3,
+      "titles": [
+        "Arizona state flag",
+        "Ladies Love My Self Defecating Sense of Humor",
+        "My Other Car Is A Boat"
+      ],
+      "run_id": "run_20260413T010817Z_3a0454ab"
+    },
+    {
+      "path": "output/posts_2026-04-10_instagram_20260410T185727Z_f96dd731.json",
+      "filename": "posts_2026-04-10_instagram_20260410T185727Z_f96dd731.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Fencing Is Pointless"
+      ],
+      "run_id": "run_20260410T185727Z_f96dd731"
+    },
+    {
+      "path": "output/posts_2026-04-10_instagram_20260410T185727Z_bc7b690a.json",
+      "filename": "posts_2026-04-10_instagram_20260410T185727Z_bc7b690a.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Ctrl + Alt + Country"
+      ],
+      "run_id": "run_20260410T185727Z_bc7b690a"
+    },
+    {
+      "path": "output/posts_2026-04-10_instagram_20260410T185651Z_bd8428f7.json",
+      "filename": "posts_2026-04-10_instagram_20260410T185651Z_bd8428f7.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Get the Flock Out"
+      ],
+      "run_id": "run_20260410T185651Z_bd8428f7"
+    },
+    {
+      "path": "output/posts_2026-04-10_bluesky_20260410T185727Z_b68a72c0.json",
+      "filename": "posts_2026-04-10_bluesky_20260410T185727Z_b68a72c0.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Fencing Is Pointless"
+      ],
+      "run_id": "run_20260410T185727Z_b68a72c0"
+    },
+    {
+      "path": "output/posts_2026-04-10_bluesky_20260410T185727Z_9c40babd.json",
+      "filename": "posts_2026-04-10_bluesky_20260410T185727Z_9c40babd.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Ctrl + Alt + Country"
+      ],
+      "run_id": "run_20260410T185727Z_9c40babd"
+    },
+    {
+      "path": "output/posts_2026-04-10_bluesky_20260410T185651Z_887e39b8.json",
+      "filename": "posts_2026-04-10_bluesky_20260410T185651Z_887e39b8.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Get the Flock Out"
+      ],
+      "run_id": "run_20260410T185651Z_887e39b8"
+    },
+    {
+      "path": "output/posts_2026-04-08_instagram_20260408T145703Z_6844a64d.json",
+      "filename": "posts_2026-04-08_instagram_20260408T145703Z_6844a64d.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Breaking Wind"
+      ],
+      "run_id": "run_20260408T145703Z_6844a64d"
+    },
+    {
+      "path": "output/posts_2026-04-08_instagram_20260408T144627Z_e176b489.json",
+      "filename": "posts_2026-04-08_instagram_20260408T144627Z_e176b489.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Whip It"
+      ],
+      "run_id": "run_20260408T144627Z_e176b489"
+    },
+    {
+      "path": "output/posts_2026-04-08_instagram_20260408T030709Z_1eefc037.json",
+      "filename": "posts_2026-04-08_instagram_20260408T030709Z_1eefc037.json",
+      "platform": "instagram",
+      "post_count": 2,
+      "titles": [
+        "Colorado state flag",
+        "Kafka is for Closers"
+      ],
+      "run_id": "run_20260408T030709Z_1eefc037"
+    },
+    {
+      "path": "output/posts_2026-04-08_bluesky_20260408T145703Z_5f33e967.json",
+      "filename": "posts_2026-04-08_bluesky_20260408T145703Z_5f33e967.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Breaking Wind"
+      ],
+      "run_id": "run_20260408T145703Z_5f33e967"
+    },
+    {
+      "path": "output/posts_2026-04-08_bluesky_20260408T030717Z_ba96453e.json",
+      "filename": "posts_2026-04-08_bluesky_20260408T030717Z_ba96453e.json",
+      "platform": "bluesky",
+      "post_count": 2,
+      "titles": [
+        "Colorado state flag",
+        "Kafka is for Closers"
+      ],
+      "run_id": "run_20260408T030717Z_ba96453e"
+    },
+    {
+      "path": "output/posts_2026-04-06_instagram_20260406T140113Z_53f686e6.json",
+      "filename": "posts_2026-04-06_instagram_20260406T140113Z_53f686e6.json",
+      "platform": "instagram",
+      "post_count": 1,
+      "titles": [
+        "Caffeinate Hydrate Inebriate Replicate"
+      ],
+      "run_id": "run_20260406T140113Z_53f686e6"
+    },
+    {
+      "path": "output/posts_2026-04-06_instagram_20260406T135935Z_e7f134f9.json",
+      "filename": "posts_2026-04-06_instagram_20260406T135935Z_e7f134f9.json",
+      "platform": "instagram",
+      "post_count": 2,
+      "titles": [
+        "I Just Crapped Myself",
+        "Aesop's Fables"
+      ],
+      "run_id": "run_20260406T135935Z_e7f134f9"
+    },
+    {
+      "path": "output/posts_2026-04-06_instagram_20260406T134421Z_b62edaac.json",
+      "filename": "posts_2026-04-06_instagram_20260406T134421Z_b62edaac.json",
+      "platform": "instagram",
+      "post_count": 2,
+      "titles": [
+        "Roger is My Copilot",
+        "Support the Arts"
+      ],
+      "run_id": "run_20260406T134421Z_b62edaac"
+    },
+    {
+      "path": "output/posts_2026-04-06_bluesky_20260406T140239Z_8894a995.json",
+      "filename": "posts_2026-04-06_bluesky_20260406T140239Z_8894a995.json",
+      "platform": "bluesky",
+      "post_count": 1,
+      "titles": [
+        "Caffeinate Hydrate Inebriate Replicate"
+      ],
+      "run_id": "run_20260406T140239Z_8894a995"
+    },
+    {
       "path": "output/posts_2026-04-05_instagram.json",
       "filename": "posts_2026-04-05_instagram.json",
       "platform": "instagram",
@@ -87,120 +526,6 @@
       "post_count": 1,
       "titles": [
         "No Yo In Equipo"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-22_x.json",
-      "filename": "posts_2026-03-22_x.json",
-      "platform": "x",
-      "post_count": 3,
-      "titles": [
-        "I'm Cropdusting",
-        "Coloradans Against Hiking",
-        "Ski in your Jeans"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-22_instagram.json",
-      "filename": "posts_2026-03-22_instagram.json",
-      "platform": "instagram",
-      "post_count": 3,
-      "titles": [
-        "I'm Cropdusting",
-        "Coloradans Against Hiking",
-        "Ski in your Jeans"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-22_bluesky.json",
-      "filename": "posts_2026-03-22_bluesky.json",
-      "platform": "bluesky",
-      "post_count": 3,
-      "titles": [
-        "I'm Cropdusting",
-        "Coloradans Against Hiking",
-        "Ski in your Jeans"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-14_x.json",
-      "filename": "posts_2026-03-14_x.json",
-      "platform": "x",
-      "post_count": 1,
-      "titles": [
-        "Rocks The Potty"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-14_instagram.json",
-      "filename": "posts_2026-03-14_instagram.json",
-      "platform": "instagram",
-      "post_count": 1,
-      "titles": [
-        "Roger is My Copilot"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-14_facebook.json",
-      "filename": "posts_2026-03-14_facebook.json",
-      "platform": "facebook",
-      "post_count": 1,
-      "titles": [
-        "Whip It"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-14_bluesky.json",
-      "filename": "posts_2026-03-14_bluesky.json",
-      "platform": "bluesky",
-      "post_count": 1,
-      "titles": [
-        "Coloradans Against Fourteeners"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-11_x.json",
-      "filename": "posts_2026-03-11_x.json",
-      "platform": "x",
-      "post_count": 3,
-      "titles": [
-        "Get Your Ass to Mars",
-        "Guns Don't Kill People",
-        "I Can't Feel My Perineum"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-11_instagram.json",
-      "filename": "posts_2026-03-11_instagram.json",
-      "platform": "instagram",
-      "post_count": 3,
-      "titles": [
-        "Get Your Ass to Mars",
-        "Guns Don't Kill People",
-        "I Can't Feel My Perineum"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-11_bluesky.json",
-      "filename": "posts_2026-03-11_bluesky.json",
-      "platform": "bluesky",
-      "post_count": 10,
-      "titles": [
-        "Happy Earth Day",
-        "Lacrosse",
-        "No Dana, Only Zuul",
-        "Support the Arts",
-        "Coloradans Against Craft Beer"
-      ]
-    },
-    {
-      "path": "output/posts_2026-03-10_instagram.json",
-      "filename": "posts_2026-03-10_instagram.json",
-      "platform": "instagram",
-      "post_count": 2,
-      "titles": [
-        "Don't Do It",
-        "Flores Para Los Muertos"
       ]
     }
   ]

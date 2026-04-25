@@ -190,6 +190,22 @@ Best use:
 - create a simple landing page or signup path tied to the series
 - make sure all profiles point to the same CTA
 
+Operationally, daily planning should use the `coloradans_against` campaign mode so the bot does not drift back into broad catalog rotation:
+
+```bash
+python plan_day.py \
+  --campaign coloradans_against \
+  --platform bluesky \
+  --platform instagram \
+  --platform facebook \
+  --platform threads \
+  --no-approval-required
+```
+
+The generated plan should include `campaign`, `series`, `audience_lane`, `content_goal`, `content_format`, and `cta_goal` fields so each post has a job beyond "show this shirt."
+
+Current offer context: ShirtClawd has 25% off `Coloradans Against` shirts and 20% off all other shirts through April 29, 2026. Use this in direct-offer posts, but keep conversation posts focused on local reactions first.
+
 ### Week 2: Publish and participate
 
 - post from the series every day
