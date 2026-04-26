@@ -4,8 +4,16 @@ __pycache__/
 
 # Generated publish logs
 data/*_publish_log.jsonl
+data/follow_up_action_queue.json
+data/follow_up_execution_log.jsonl
+data/follow_up_session_state.json
 
 # Generated post artifacts and run summaries
-output/daily_plan_*_manual_now.json
+output/daily_plan_*.json
 output/posts_*.json
 output/run_*_summary.json
+output/follow_up_*.md
+output/follow_up_session_*.md
+
+# Runtime logs
+logs/

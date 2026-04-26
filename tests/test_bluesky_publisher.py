@@ -6,11 +6,16 @@ from unittest.mock import patch
 
 from bot.bluesky_publisher import (
     MAX_BLOB_BYTES,
+    build_reply_refs,
     build_bluesky_status,
     build_external_embed,
+    create_post,
     load_posts,
+    normalize_bluesky_post_target,
     optimize_image_for_bluesky,
+    parse_at_uri,
     publish_post,
+    publish_reply,
     select_post,
 )
 
@@ -106,6 +111,64 @@ class BlueskyPublisherTests(unittest.TestCase):
             self.assertEqual(len(lines), 1)
             payload = json.loads(lines[0])
             self.assertEqual(payload["status"], "dry_run")
+
+    def test_parse_at_uri(self):
+        params = parse_at_uri("at://did:plc:abc/app.bsky.feed.post/3kabc")
+
+        self.assertEqual(params["repo"], "did:plc:abc")
+        self.assertEqual(params["collection"], "app.bsky.feed.post")
+        self.assertEqual(params["rkey"], "3kabc")
+
+    @patch("bot.bluesky_publisher.resolve_handle", return_value="did:plc:resolved")
+    def test_normalize_bluesky_post_target_accepts_bsky_app_urls(self, resolve_handle):
+        target = normalize_bluesky_post_target("https://bsky.app/profile/example.com/post/3kabc")
+
+        self.assertEqual(target, "at://did:plc:resolved/app.bsky.feed.post/3kabc")
+        resolve_handle.assert_called_once_with("example.com")
+
+    @patch(
+        "bot.bluesky_publisher.get_record",
+        return_value={
+            "uri": "at://did:plc:abc/app.bsky.feed.post/3kabc",
+            "cid": "parent-cid",
+            "value": {},
+        },
+    )
+    def test_build_reply_refs_uses_top_level_post_as_root(self, get_record):
+        refs = build_reply_refs("at://did:plc:abc/app.bsky.feed.post/3kabc")
+
+        self.assertEqual(refs["root"]["cid"], "parent-cid")
+        self.assertEqual(refs["parent"]["cid"], "parent-cid")
+
+    @patch("bot.bluesky_publisher.json_request")
+    def test_create_post_can_include_reply_refs(self, json_request):
+        json_request.return_value = {"uri": "at://did/reply", "cid": "reply-cid"}
+        reply = {
+            "root": {"uri": "at://did/root", "cid": "root-cid"},
+            "parent": {"uri": "at://did/parent", "cid": "parent-cid"},
+        }
+
+        response = create_post("Reply text", "did:plc:me", "jwt", reply=reply)
+
+        payload = json_request.call_args.args[1]
+        self.assertEqual(response["uri"], "at://did/reply")
+        self.assertEqual(payload["record"]["reply"], reply)
+
+    def test_publish_reply_dry_run_logs_event_without_credentials(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = Path(tmpdir) / "publish_log.jsonl"
+            result = publish_reply(
+                "Reply text",
+                "at://did:plc:abc/app.bsky.feed.post/3kabc",
+                dry_run=True,
+                log_path=log_path,
+                handle="shirtclawd.bsky.social",
+            )
+
+            self.assertEqual(result["mode"], "dry_run")
+            lines = log_path.read_text().strip().splitlines()
+            payload = json.loads(lines[0])
+            self.assertEqual(payload["status"], "dry_run_reply")
 
     def test_load_posts_reads_array(self):
         with tempfile.TemporaryDirectory() as tmpdir:

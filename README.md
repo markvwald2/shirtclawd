@@ -68,6 +68,8 @@ data/
   inventory_metadata.json
   promotion_history.json
   x_approval_queue.json
+  follow_up_action_queue.json
+  follow_up_execution_log.jsonl
   ai_usage.jsonl
   x_publish_log.jsonl
   snapshots/
@@ -76,6 +78,7 @@ output/
   posts_YYYY-MM-DD_<platform>.json
   post_index.json
   run_<timestamp>_<id>_summary.json
+  follow_up_YYYY-MM-DD.md
 
 ui/
   index.html
@@ -117,13 +120,13 @@ python plan_day.py \
   --no-approval-required
 ```
 
-The scheduled daily workflow defaults to this campaign and auto-publishes the generated posts:
+The scheduled daily workflow defaults to this campaign, auto-publishes the generated posts, then runs the daily follow-up session before exiting:
 
 ```bash
 scripts/run_daily_workflow.sh
 ```
 
-Set `AUTO_PUBLISH=0` to generate without publishing, or override `PLATFORMS` with a space-separated list.
+Set `AUTO_PUBLISH=0` to generate without publishing, `FOLLOW_UP_SESSION=0` to skip the final catch-up pass, or override `PLATFORMS` with a space-separated list.
 
 ### Generate Posts
 
@@ -286,6 +289,96 @@ python publish_to_instagram.py --file output/posts_2026-03-22_instagram.json --i
 
 The CLI auto-loads `.env` if it exists. Current support is limited to single-image feed posts.
 
+### Run a Daily Follow-Up Session
+
+For the one-hour supervised pilot, prefer the daily catch-up session. It checks the saved queue, refreshes candidate targets, scans Bluesky replies/mentions/quotes since the last session, writes a review report, executes already-approved Bluesky replies when requested, saves the new last-checked timestamp, and exits.
+
+```bash
+python follow_up.py --daily-session --date 2026-04-26
+```
+
+The session writes:
+
+- `output/follow_up_YYYY-MM-DD.md`: the full draft/review brief.
+- `output/follow_up_session_YYYY-MM-DD.md`: the catch-up summary and current to-dos.
+- `data/follow_up_session_state.json`: the last checked timestamp for tomorrow's inbox scan.
+
+Execute approved Bluesky replies during the same catch-up pass:
+
+```bash
+python follow_up.py --daily-session --date 2026-04-26 --session-execute-approved --publish --limit 3
+```
+
+`scripts/run_follow_up_mode.sh` now runs this one-shot session by default. Set `FOLLOW_UP_LEGACY_LOOP=1` only if you want the old 10-minute discovery/execution loop.
+
+### Build a Follow-Up Brief
+
+After a campaign publishes, generate a one-hour distribution checklist:
+
+```bash
+python follow_up.py --date 2026-04-26
+```
+
+The brief is written to `output/follow_up_YYYY-MM-DD.md`. It reads the daily plan, generated post files, and publish logs, then produces discovery searches, candidate target posts/accounts, reply/comment drafts, creator outreach prompts, and a tracking table. Public replies, comments, DMs, follows, and offers are intentionally approval-gated. This is still available as a lower-level command, but the daily session above is the recommended morning workflow.
+
+`scripts/run_daily_workflow.sh` now runs the full daily follow-up session automatically after publishing unless `FOLLOW_UP_SESSION=0` is set. Use `FOLLOW_UP_UPTIME_MINUTES`, `FOLLOW_UP_INBOX_LIMIT`, `FOLLOW_UP_EXECUTE_APPROVED`, and `FOLLOW_UP_PUBLISH_APPROVED` to tune that final catch-up pass. If `FOLLOW_UP_SESSION=0`, the older brief-only behavior still runs when `FOLLOW_UP_BRIEF=1`.
+
+Discovery coverage:
+
+- Bluesky: public post search with concrete `bsky.app` post targets.
+- Threads: official keyword search when `THREADS_ACCESS_TOKEN` has the required search permission.
+- Instagram: hashtag discovery through the Instagram Graph API using `INSTAGRAM_ACCESS_TOKEN` and `INSTAGRAM_BUSINESS_ACCOUNT_ID`.
+- Facebook: curated page/account review targets from `config/facebook_discovery_targets.json`, because broad public post search is not available through the normal Graph API.
+
+The same command also updates `data/follow_up_action_queue.json` with approval IDs such as `FU-2026-04-26-01-R1`.
+
+List today's actions:
+
+```bash
+python follow_up.py --list-actions --date 2026-04-26
+```
+
+Approve an action after reviewing the suggested target post or choosing your own:
+
+```bash
+python follow_up.py \
+  --approve FU-2026-04-26-01-R1 \
+  --target-url "https://example.com/target-post" \
+  --copy "Final approved reply text"
+```
+
+If the bot already attached the right candidate target, `--target-url` is optional and approval can just set the final copy:
+
+```bash
+python follow_up.py --approve FU-2026-04-26-01-R1 --copy "Final approved reply text"
+```
+
+After you manually post or send it, mark it sent:
+
+```bash
+python follow_up.py --mark-sent FU-2026-04-26-01-R1 --target-url "https://example.com/target-post"
+```
+
+Skip weak fits:
+
+```bash
+python follow_up.py --skip FU-2026-04-26-O1 --note "Not the right audience"
+```
+
+Run approved actions as a dry run:
+
+```bash
+python follow_up.py --execute-approved --platform bluesky
+```
+
+Execute approved Bluesky replies:
+
+```bash
+python follow_up.py --execute-approved --platform bluesky --publish --limit 3
+```
+
+Execution is intentionally narrow in the supervised pilot. Bluesky reply/comment actions can execute when the approved action has a `target_url` that is either a `bsky.app` post URL or an `at://` post URI. Instagram, Facebook, Threads, and outreach DMs remain approval-tracked but manually sent until their platform-specific execution paths are added.
+
 ## Data Flow
 
 ClawdBot follows a simple pipeline:
@@ -302,7 +395,9 @@ ClawdBot follows a simple pipeline:
 10. Write the post batch and update `output/post_index.json`.
 11. Append promotion history entries.
 12. Log AI usage events and write a per-run summary.
-13. Optionally approve and publish individual X posts later.
+13. Publish configured platforms when the workflow is in live mode.
+14. Write a follow-up brief and action queue for the distribution window.
+15. Run the daily follow-up session to scan inbox items, refresh to-dos, execute approved supported actions, and save the next inbox checkpoint.
 
 ## Configuration
 
@@ -340,6 +435,8 @@ ClawdBot is file-based. Important files:
 - `data/inventory_metadata.json`: source URL, fetch time, checksum, snapshot path
 - `data/promotion_history.json`: generated-post history used for selection
 - `data/x_approval_queue.json`: approved X posts
+- `data/follow_up_action_queue.json`: drafted, approved, sent, and skipped follow-up actions
+- `data/follow_up_execution_log.jsonl`: dry-run, sent, unsupported, and error results for follow-up execution
 - `data/ai_usage.jsonl`: per-attempt AI usage and error events
 - `data/x_publish_log.jsonl`: X dry-run and publish log
 - `data/threads_publish_log.jsonl`: Threads dry-run and publish log
@@ -347,6 +444,7 @@ ClawdBot is file-based. Important files:
 - `output/posts_*.json`: generated post batches
 - `output/post_index.json`: small index used by the UI
 - `output/run_*_summary.json`: per-run aggregate metrics
+- `output/follow_up_YYYY-MM-DD.md`: post-publish distribution brief
 
 ## Environment Variables
 
@@ -373,12 +471,29 @@ Required for live publishing to Bluesky:
 - `BLUESKY_HANDLE`
 - `BLUESKY_APP_PASSWORD`
 
-### Threads Publishing
+### Threads Publishing And Discovery
 
-Required for live publishing to Threads:
+Required for live publishing and keyword discovery on Threads:
 
 - `THREADS_ACCESS_TOKEN`
 - `THREADS_USER_ID`
+- `THREADS_USERNAME` optional self-exclusion hint for discovery
+
+### Instagram Publishing And Discovery
+
+Required for live publishing and hashtag discovery on Instagram:
+
+- `INSTAGRAM_ACCESS_TOKEN`
+- `INSTAGRAM_BUSINESS_ACCOUNT_ID`
+
+### Facebook Publishing And Discovery
+
+Required for live publishing to Facebook:
+
+- `FACEBOOK_PAGE_ACCESS_TOKEN`
+- `FACEBOOK_PAGE_ID`
+
+Facebook discovery uses curated review targets in `config/facebook_discovery_targets.json`; it does not require broad public post search access.
 
 ## Local Dashboard
 

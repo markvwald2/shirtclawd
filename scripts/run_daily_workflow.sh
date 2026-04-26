@@ -55,8 +55,36 @@ else:
 PY
 }
 
+run_follow_up_session() {
+  if [[ "${FOLLOW_UP_SESSION:-1}" != "1" ]]; then
+    if [[ "${FOLLOW_UP_BRIEF:-1}" == "1" ]]; then
+      "$PYTHON_BIN" follow_up.py --date "$PLAN_DATE" --uptime-minutes "${FOLLOW_UP_UPTIME_MINUTES:-60}"
+    fi
+    return
+  fi
+
+  session_args=(follow_up.py --daily-session \
+    --date "$PLAN_DATE" \
+    --uptime-minutes "${FOLLOW_UP_UPTIME_MINUTES:-60}" \
+    --target-search-limit "${FOLLOW_UP_TARGET_SEARCH_LIMIT:-10}" \
+    --target-candidates "${FOLLOW_UP_TARGET_CANDIDATES:-3}" \
+    --target-max-age-days "${FOLLOW_UP_TARGET_MAX_AGE_DAYS:-21}" \
+    --inbox-limit "${FOLLOW_UP_INBOX_LIMIT:-50}" \
+    --inbox-lookback-hours "${FOLLOW_UP_INBOX_LOOKBACK_HOURS:-24}")
+
+  if [[ "${FOLLOW_UP_EXECUTE_APPROVED:-1}" == "1" ]]; then
+    session_args+=(--session-execute-approved --platform bluesky --limit "${FOLLOW_UP_EXECUTE_LIMIT:-3}")
+  fi
+  if [[ "$AUTO_PUBLISH" == "1" && "${FOLLOW_UP_PUBLISH_APPROVED:-1}" == "1" ]]; then
+    session_args+=(--publish)
+  fi
+
+  "$PYTHON_BIN" "${session_args[@]}"
+}
+
 if [[ "$AUTO_PUBLISH" != "1" ]]; then
   echo "AUTO_PUBLISH=$AUTO_PUBLISH; skipping publish step."
+  run_follow_up_session
   exit 0
 fi
 
@@ -80,3 +108,5 @@ for platform in "${PLATFORMS[@]}"; do
       ;;
   esac
 done
+
+run_follow_up_session

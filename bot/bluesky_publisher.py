@@ -8,12 +8,15 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 
 BLUESKY_BASE_URL = "https://bsky.social"
 CREATE_SESSION_URL = f"{BLUESKY_BASE_URL}/xrpc/com.atproto.server.createSession"
 CREATE_RECORD_URL = f"{BLUESKY_BASE_URL}/xrpc/com.atproto.repo.createRecord"
+GET_RECORD_URL = f"{BLUESKY_BASE_URL}/xrpc/com.atproto.repo.getRecord"
+RESOLVE_HANDLE_URL = f"{BLUESKY_BASE_URL}/xrpc/com.atproto.identity.resolveHandle"
 UPLOAD_BLOB_URL = f"{BLUESKY_BASE_URL}/xrpc/com.atproto.repo.uploadBlob"
 DEFAULT_PUBLISH_LOG_PATH = Path("data/bluesky_publish_log.jsonl")
 DEFAULT_BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE", "replace-me.bsky.social")
@@ -162,12 +165,125 @@ def create_session(credentials):
     return response
 
 
-def create_post(text, did, access_jwt, blob=None, external_embed=None):
+def publish_reply(text, target, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, handle=None):
+    reply_text = trim_text(str(text or "").strip(), MAX_POST_LENGTH)
+    resolved_handle = handle or (credentials or {}).get("handle") or DEFAULT_BLUESKY_HANDLE
+    result = {
+        "mode": "dry_run" if dry_run else "publish",
+        "platform": "bluesky",
+        "handle": resolved_handle,
+        "target": target,
+        "text": reply_text,
+        "action_type": "reply",
+    }
+    if dry_run:
+        log_publish_event(
+            {
+                "logged_at": utc_now_iso(),
+                "status": "dry_run_reply",
+                "text": reply_text,
+                "handle": resolved_handle,
+                "target": target,
+            },
+            log_path,
+        )
+        return result
+
+    resolved_credentials = credentials or load_credentials()
+    session = create_session(resolved_credentials)
+    reply_refs = build_reply_refs(target)
+    response = create_post(
+        text=reply_text,
+        did=session["did"],
+        access_jwt=session["accessJwt"],
+        reply=reply_refs,
+    )
+    event = {
+        "logged_at": utc_now_iso(),
+        "status": "published_reply",
+        "text": reply_text,
+        "handle": resolved_handle,
+        "target": target,
+        "reply_root_uri": reply_refs["root"]["uri"],
+        "reply_parent_uri": reply_refs["parent"]["uri"],
+        "uri": response.get("uri"),
+        "cid": response.get("cid"),
+    }
+    log_publish_event(event, log_path)
+    result.update(event)
+    return result
+
+
+def build_reply_refs(target):
+    parent_uri = normalize_bluesky_post_target(target)
+    parent = get_record(parent_uri)
+    parent_ref = {"uri": parent["uri"], "cid": parent["cid"]}
+    parent_reply = (parent.get("value") or {}).get("reply")
+    root_ref = parent_reply.get("root") if isinstance(parent_reply, dict) and parent_reply.get("root") else parent_ref
+    return {
+        "root": {
+            "uri": root_ref["uri"],
+            "cid": root_ref["cid"],
+        },
+        "parent": parent_ref,
+    }
+
+
+def normalize_bluesky_post_target(target):
+    text = str(target or "").strip()
+    if not text:
+        raise BlueskyPublisherError("Missing Bluesky reply target.")
+    if text.startswith("at://"):
+        return text
+
+    parsed = urlparse(text)
+    host = (parsed.netloc or "").lower()
+    parts = [part for part in parsed.path.split("/") if part]
+    if host == "bsky.app" and len(parts) >= 4 and parts[0] == "profile" and parts[2] == "post":
+        actor = parts[1]
+        rkey = parts[3]
+        repo = actor if actor.startswith("did:") else resolve_handle(actor)
+        return f"at://{repo}/app.bsky.feed.post/{rkey}"
+
+    raise BlueskyPublisherError(f"Unsupported Bluesky reply target: {target}")
+
+
+def resolve_handle(handle):
+    payload = get_json_request(RESOLVE_HANDLE_URL, {"handle": handle})
+    did = payload.get("did")
+    if not did:
+        raise BlueskyPublisherError(f"Bluesky handle resolution response missing did: {payload}")
+    return did
+
+
+def get_record(uri):
+    params = parse_at_uri(uri)
+    payload = get_json_request(GET_RECORD_URL, params)
+    if not payload.get("uri") or not payload.get("cid"):
+        raise BlueskyPublisherError(f"Bluesky getRecord response missing uri/cid: {payload}")
+    return payload
+
+
+def parse_at_uri(uri):
+    parsed = urlparse(str(uri or ""))
+    parts = [part for part in parsed.path.split("/") if part]
+    if parsed.scheme != "at" or not parsed.netloc or len(parts) != 2:
+        raise BlueskyPublisherError(f"Invalid AT URI: {uri}")
+    return {
+        "repo": parsed.netloc,
+        "collection": parts[0],
+        "rkey": parts[1],
+    }
+
+
+def create_post(text, did, access_jwt, blob=None, external_embed=None, reply=None):
     record = {
         "$type": "app.bsky.feed.post",
         "text": text,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
+    if reply:
+        record["reply"] = reply
     if external_embed:
         record["embed"] = external_embed
     elif blob:
@@ -251,6 +367,24 @@ def json_request(url, payload, headers=None):
         headers=headers or {"Content-Type": "application/json"},
         method="POST",
     )
+    try:
+        with urlopen(request, timeout=30) as response:
+            raw = response.read().decode("utf-8")
+    except HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise BlueskyPublisherError(f"Bluesky API request failed: {exc.code} {error_body}") from exc
+    except URLError as exc:
+        raise BlueskyPublisherError(f"Bluesky API request failed: {exc}") from exc
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise BlueskyPublisherError(f"Bluesky API returned invalid JSON: {exc}") from exc
+
+
+def get_json_request(url, payload, headers=None):
+    request_url = f"{url}?{urlencode(payload)}"
+    request = Request(request_url, headers=headers or {}, method="GET")
     try:
         with urlopen(request, timeout=30) as response:
             raw = response.read().decode("utf-8")

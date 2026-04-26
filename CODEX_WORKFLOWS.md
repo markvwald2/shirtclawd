@@ -75,6 +75,49 @@ python manage_catalog.py promote-shirt \
   --notes "Strong niche fit."
 ```
 
+## 4. Build Today's Follow-Up Brief
+
+Best Codex prompt:
+
+```text
+Run today's ShirtClawd follow-up session.
+```
+
+Useful repo command:
+
+```bash
+python follow_up.py --daily-session --date 2026-04-26
+```
+
+Notes:
+
+- The daily workflow publishes fresh posts, then runs the follow-up session automatically before exiting.
+- The follow-up session writes `output/follow_up_YYYY-MM-DD.md` and `output/follow_up_session_YYYY-MM-DD.md`, scans Bluesky replies/mentions/quotes since the last saved check, refreshes candidate targets, updates the queue, and exits.
+- The same run updates `data/follow_up_action_queue.json` with action IDs and statuses, plus `data/follow_up_session_state.json` with the next inbox checkpoint.
+- Public replies, comments, DMs, follows, and offers still require human approval.
+- Target discovery runs by default for Bluesky, Threads, Instagram, and curated Facebook review targets. Use `--skip-target-discovery` for offline/manual-only runs.
+
+Approval flow:
+
+```bash
+python follow_up.py --list-actions --date 2026-04-26
+python follow_up.py --approve FU-2026-04-26-01-R1 --target-url "https://example.com/target-post" --copy "Final text"
+python follow_up.py --approve FU-2026-04-26-01-R1 --copy "Final text"
+python follow_up.py --daily-session --date 2026-04-26 --session-execute-approved
+python follow_up.py --daily-session --date 2026-04-26 --session-execute-approved --publish --limit 3
+python follow_up.py --execute-approved --platform bluesky
+python follow_up.py --execute-approved --platform bluesky --publish --limit 3
+python follow_up.py --mark-sent FU-2026-04-26-01-R1 --target-url "https://example.com/target-post"
+python follow_up.py --skip FU-2026-04-26-O1 --note "Not the right audience"
+```
+
+Execution notes:
+
+- `--execute-approved` is a dry run unless `--publish` is passed.
+- In daily session mode, `--session-execute-approved` runs approved supported actions during the catch-up pass; `--publish` decides dry run vs live publish.
+- The first supported execution path is Bluesky replies to `bsky.app` post URLs or `at://` post URIs.
+- Instagram, Facebook, Threads, and outreach DMs stay in the approval queue for manual sending until their safe executors are added.
+
 ## Recommended Codex Pattern
 
 When working in chat, the fastest pattern is:
