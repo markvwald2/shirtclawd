@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from bot.bluesky_discovery import bsky_post_url, parse_datetime
 from bot.bluesky_publisher import (
     BLUESKY_BASE_URL,
@@ -49,8 +47,6 @@ def list_notifications(since=None, limit=DEFAULT_NOTIFICATION_LIMIT, credentials
         payload = {
             "limit": max(1, min(int(limit or DEFAULT_NOTIFICATION_LIMIT), 100)),
         }
-        if since:
-            payload["seenAt"] = iso_datetime(since)
         response = get_json_request(
             LIST_NOTIFICATIONS_URL,
             payload,
@@ -99,16 +95,6 @@ def inbox_item_from_notification(notification):
         "profile_url": f"https://bsky.app/profile/{handle}",
         "is_read": bool(notification.get("isRead")),
     }
-
-
-def iso_datetime(value):
-    parsed = parse_datetime(value)
-    if parsed:
-        return parsed.astimezone(timezone.utc).isoformat()
-    if isinstance(value, datetime):
-        return value.astimezone(timezone.utc).isoformat()
-    return str(value)
-
 
 def clean_notification_text(text):
     return " ".join(str(text or "").split())
