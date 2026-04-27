@@ -120,13 +120,13 @@ python plan_day.py \
   --no-approval-required
 ```
 
-The scheduled daily workflow defaults to this campaign, auto-publishes the generated posts, then runs the daily follow-up session before exiting:
+The scheduled daily workflow defaults to this campaign. It first runs a preflight follow-up session for the previous daily plan when one exists, then auto-publishes today's generated posts, then runs today's follow-up session before exiting:
 
 ```bash
 scripts/run_daily_workflow.sh
 ```
 
-Set `AUTO_PUBLISH=0` to generate without publishing, `FOLLOW_UP_SESSION=0` to skip the final catch-up pass, or override `PLATFORMS` with a space-separated list.
+Set `AUTO_PUBLISH=0` to generate without publishing, `FOLLOW_UP_PREFLIGHT=0` to skip the previous-day catch-up pass, `FOLLOW_UP_SESSION=0` to skip follow-up sessions, or override `PLATFORMS` with a space-separated list.
 
 ### Generate Posts
 
@@ -321,7 +321,7 @@ python follow_up.py --date 2026-04-26
 
 The brief is written to `output/follow_up_YYYY-MM-DD.md`. It reads the daily plan, generated post files, and publish logs, then produces discovery searches, candidate target posts/accounts, reply/comment drafts, creator outreach prompts, and a tracking table. Public replies, comments, DMs, follows, and offers are intentionally approval-gated. This is still available as a lower-level command, but the daily session above is the recommended morning workflow.
 
-`scripts/run_daily_workflow.sh` now runs the full daily follow-up session automatically after publishing unless `FOLLOW_UP_SESSION=0` is set. Use `FOLLOW_UP_UPTIME_MINUTES`, `FOLLOW_UP_INBOX_LIMIT`, `FOLLOW_UP_EXECUTE_APPROVED`, and `FOLLOW_UP_PUBLISH_APPROVED` to tune that final catch-up pass. If `FOLLOW_UP_SESSION=0`, the older brief-only behavior still runs when `FOLLOW_UP_BRIEF=1`.
+`scripts/run_daily_workflow.sh` now runs a previous-day follow-up preflight before publishing and the full daily follow-up session after publishing unless disabled. Use `FOLLOW_UP_PREFLIGHT=0` to skip the previous-day pass, and `FOLLOW_UP_UPTIME_MINUTES`, `FOLLOW_UP_INBOX_LIMIT`, `FOLLOW_UP_EXECUTE_APPROVED`, and `FOLLOW_UP_PUBLISH_APPROVED` to tune follow-up behavior. If `FOLLOW_UP_SESSION=0`, the older brief-only behavior still runs when `FOLLOW_UP_BRIEF=1`.
 
 Discovery coverage:
 
@@ -383,21 +383,21 @@ Execution is intentionally narrow in the supervised pilot. Bluesky reply/comment
 
 ClawdBot follows a simple pipeline:
 
-1. Optionally refresh inventory from the public dataset.
-2. Load and normalize inventory records from `data/shirt_inventory.json`.
-3. Merge local annotations from `data/shirt_annotations.json`.
-4. Load promotion history from `data/promotion_history.json`.
-5. Build a daily plan that chooses platforms and shirts within the estimated AI spend limit.
-6. Optionally apply campaign metadata such as `coloradans_against`, content goals, CTA goals, and audience lane.
-7. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
-8. Generate copy with OpenAI.
-9. Apply platform-specific formatting rules.
-10. Write the post batch and update `output/post_index.json`.
-11. Append promotion history entries.
-12. Log AI usage events and write a per-run summary.
-13. Publish configured platforms when the workflow is in live mode.
-14. Write a follow-up brief and action queue for the distribution window.
-15. Run the daily follow-up session to scan inbox items, refresh to-dos, execute approved supported actions, and save the next inbox checkpoint.
+1. Run a previous-day follow-up preflight when a prior daily plan exists.
+2. Optionally refresh inventory from the public dataset.
+3. Load and normalize inventory records from `data/shirt_inventory.json`.
+4. Merge local annotations from `data/shirt_annotations.json`.
+5. Load promotion history from `data/promotion_history.json`.
+6. Build a daily plan that chooses platforms and shirts within the estimated AI spend limit.
+7. Optionally apply campaign metadata such as `coloradans_against`, content goals, CTA goals, and audience lane.
+8. Select eligible shirts that are available, explicitly approved for promotion, and not recently promoted.
+9. Generate copy with OpenAI.
+10. Apply platform-specific formatting rules.
+11. Write the post batch and update `output/post_index.json`.
+12. Append promotion history entries.
+13. Log AI usage events and write a per-run summary.
+14. Publish configured platforms when the workflow is in live mode.
+15. Run today's follow-up session to scan inbox items, refresh to-dos, execute approved supported actions, and save the next inbox checkpoint.
 
 ## Configuration
 

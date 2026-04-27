@@ -91,7 +91,7 @@ python follow_up.py --daily-session --date 2026-04-26
 
 Notes:
 
-- The daily workflow publishes fresh posts, then runs the follow-up session automatically before exiting.
+- The daily workflow first runs a previous-day follow-up preflight when a prior daily plan exists, publishes fresh posts, then runs today's follow-up session automatically before exiting.
 - The follow-up session writes `output/follow_up_YYYY-MM-DD.md` and `output/follow_up_session_YYYY-MM-DD.md`, scans Bluesky replies/mentions/quotes since the last saved check, refreshes candidate targets, updates the queue, and exits.
 - The same run updates `data/follow_up_action_queue.json` with action IDs and statuses, plus `data/follow_up_session_state.json` with the next inbox checkpoint.
 - Public replies, comments, DMs, follows, and offers still require human approval.
