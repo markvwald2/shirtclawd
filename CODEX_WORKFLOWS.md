@@ -96,6 +96,7 @@ Notes:
 - The same run updates `data/follow_up_action_queue.json` with action IDs and statuses, plus `data/follow_up_session_state.json` with the next inbox checkpoint.
 - Public replies, comments, DMs, follows, and offers still require human approval.
 - Target discovery runs by default for Bluesky, Threads, Instagram, and curated Facebook review targets. Use `--skip-target-discovery` for offline/manual-only runs.
+- Use `--automation-only` or `FOLLOW_UP_AUTOMATION_ONLY=1` when you want the queue to contain only API-executable follow-ups; manual-only targets are suppressed for that run date.
 
 Approval flow:
 
@@ -105,8 +106,9 @@ python follow_up.py --approve FU-2026-04-26-01-R1 --target-url "https://example.
 python follow_up.py --approve FU-2026-04-26-01-R1 --copy "Final text"
 python follow_up.py --daily-session --date 2026-04-26 --session-execute-approved
 python follow_up.py --daily-session --date 2026-04-26 --session-execute-approved --publish --limit 3
+python follow_up.py --daily-session --date 2026-04-26 --automation-only --session-execute-approved --publish
 python follow_up.py --execute-approved --platform bluesky
-python follow_up.py --execute-approved --platform bluesky --publish --limit 3
+python follow_up.py --execute-approved --publish --limit 3
 python follow_up.py --mark-sent FU-2026-04-26-01-R1 --target-url "https://example.com/target-post"
 python follow_up.py --skip FU-2026-04-26-O1 --note "Not the right audience"
 ```

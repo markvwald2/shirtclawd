@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from bot.threads_publisher import build_threads_status, load_posts, publish_post, select_post
+from bot.threads_publisher import build_threads_status, create_container, load_posts, publish_post, publish_reply, select_post
 
 
 class ThreadsPublisherTests(unittest.TestCase):
@@ -103,6 +103,32 @@ class ThreadsPublisherTests(unittest.TestCase):
         self.assertEqual(first_call.kwargs["payload"]["media_type"], "IMAGE")
         self.assertEqual(first_call.kwargs["payload"]["image_url"], "https://example.com/image.jpg")
         self.assertEqual(first_call.kwargs["payload"]["alt_text"], "Example alt text")
+
+    @patch("bot.threads_publisher.api_request")
+    def test_create_container_can_target_reply(self, api_request):
+        api_request.return_value = {"id": "creation123"}
+
+        create_container("user123", "token", "Reply text", reply_to_id="thread123")
+
+        self.assertEqual(api_request.call_args.kwargs["payload"]["reply_to_id"], "thread123")
+        self.assertEqual(api_request.call_args.kwargs["payload"]["media_type"], "TEXT")
+
+    @patch("bot.threads_publisher.api_request")
+    def test_publish_reply_creates_and_publishes_reply_container(self, api_request):
+        api_request.side_effect = [{"id": "creation123"}, {"id": "thread456"}]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = Path(tmpdir) / "publish_log.jsonl"
+            result = publish_reply(
+                "Reply text",
+                "target123",
+                dry_run=False,
+                credentials={"access_token": "token", "user_id": "user123"},
+                log_path=log_path,
+                username="@3rdstringshirts",
+            )
+
+        self.assertEqual(result["threads_media_id"], "thread456")
+        self.assertEqual(api_request.call_args_list[0].kwargs["payload"]["reply_to_id"], "target123")
 
 
 if __name__ == "__main__":

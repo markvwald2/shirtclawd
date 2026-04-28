@@ -236,7 +236,7 @@ def build_follow_up_brief(
     return "\n".join(lines)
 
 
-def build_follow_up_actions(plan, post_refs, publish_records, run_date, generated_at=None, target_discovery=None):
+def build_follow_up_actions(plan, post_refs, publish_records, run_date, generated_at=None, target_discovery=None, automation_only=False):
     generated = generated_at or datetime.now(timezone.utc).isoformat()
     series = first_truthy([entry.get("series") for entry in plan.get("planned_posts", [])]) or plan.get("campaign") or ""
     discovered_targets = target_discovery or {}
@@ -283,32 +283,35 @@ def build_follow_up_actions(plan, post_refs, publish_records, run_date, generate
                 apply_candidate_to_action(action, candidate)
             if discovery_error:
                 action["target_discovery_error"] = discovery_error
-            actions.append(action)
+            if not automation_only or is_api_executable_action(action):
+                actions.append(action)
 
-    for outreach_index, (target_type, search, prompt) in enumerate(build_outreach_rows(series), start=1):
-        actions.append(
-            {
-                "action_id": outreach_action_id(run_date, outreach_index),
-                "date": run_date,
-                "kind": "outreach_dm",
-                "status": "drafted",
-                "platform": "manual",
-                "target_type": target_type,
-                "target_search": search,
-                "target_url": "",
-                "draft_text": prompt,
-                "approved_text": "",
-                "human_gate": "Approve target and copy before sending any DM or offer.",
-                "created_at": generated,
-                "updated_at": generated,
-                "notes": [],
-            }
-        )
+    if not automation_only:
+        for outreach_index, (target_type, search, prompt) in enumerate(build_outreach_rows(series), start=1):
+            actions.append(
+                {
+                    "action_id": outreach_action_id(run_date, outreach_index),
+                    "date": run_date,
+                    "kind": "outreach_dm",
+                    "status": "drafted",
+                    "platform": "manual",
+                    "target_type": target_type,
+                    "target_search": search,
+                    "target_url": "",
+                    "draft_text": prompt,
+                    "approved_text": "",
+                    "human_gate": "Approve target and copy before sending any DM or offer.",
+                    "created_at": generated,
+                    "updated_at": generated,
+                    "notes": [],
+                }
+            )
 
     return actions
 
 
 def apply_candidate_to_action(action, candidate):
+    candidate_platform = candidate.get("platform") or action.get("platform")
     action["target_url"] = candidate.get("url", "")
     action["target_uri"] = candidate.get("uri", "")
     action["target_author_handle"] = candidate.get("author_handle", "")
@@ -328,6 +331,17 @@ def apply_candidate_to_action(action, candidate):
         action["target_search_url"] = candidate["target_search_url"]
     if candidate.get("manual_review"):
         action["target_manual_review"] = True
+    if not candidate.get("manual_review"):
+        candidate_id = candidate.get("id") or candidate.get("uri") or ""
+        if candidate_platform == "threads" and candidate_id:
+            action["target_thread_id"] = candidate.get("target_thread_id") or candidate.get("target_media_id") or candidate_id
+        elif candidate_platform == "facebook" and candidate_id:
+            action["target_object_id"] = candidate.get("target_object_id") or candidate.get("target_post_id") or candidate_id
+        elif candidate_platform == "instagram" and candidate.get("comment_id"):
+            action["target_comment_id"] = candidate["comment_id"]
+    for key in ("target_id", "target_object_id", "target_post_id", "target_thread_id", "target_media_id", "target_comment_id"):
+        if candidate.get(key):
+            action[key] = candidate[key]
     return action
 
 
@@ -402,7 +416,7 @@ def save_follow_up_queue(queue, path=DEFAULT_FOLLOW_UP_QUEUE_PATH):
     temp_path.replace(queue_path)
 
 
-def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH):
+def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH, replace_run_date=None):
     queue = load_follow_up_queue(path)
     existing = {action.get("action_id"): action for action in queue.get("actions", [])}
     merged = []
@@ -429,6 +443,14 @@ def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH):
             preserve_target = status in ("approved", "sent", "skipped")
             if preserve_target:
                 preserve_target_metadata = target_metadata_matches_url(preserved)
+                target_id_keys = {
+                    "target_id",
+                    "target_object_id",
+                    "target_post_id",
+                    "target_thread_id",
+                    "target_media_id",
+                    "target_comment_id",
+                }
                 for key in (
                     "target_url",
                     "target_author_handle",
@@ -441,9 +463,15 @@ def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH):
                     "target_metrics",
                     "target_search_url",
                     "target_manual_review",
+                    "target_id",
+                    "target_object_id",
+                    "target_post_id",
+                    "target_thread_id",
+                    "target_media_id",
+                    "target_comment_id",
                 ):
                     if key in preserved:
-                        if key == "target_url" or preserve_target_metadata:
+                        if key == "target_url" or key in target_id_keys or preserve_target_metadata:
                             merged_action[key] = preserved[key]
                         else:
                             merged_action.pop(key, None)
@@ -453,8 +481,11 @@ def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH):
         seen.add(action_id)
 
     for action in queue.get("actions", []):
-        if action.get("action_id") not in seen:
-            merged.append(action)
+        if action.get("action_id") in seen:
+            continue
+        if replace_run_date and action.get("date") == replace_run_date:
+            continue
+        merged.append(action)
 
     merged.sort(key=lambda item: item.get("action_id", ""))
     queue["actions"] = merged
@@ -470,6 +501,33 @@ def list_follow_up_actions(path=DEFAULT_FOLLOW_UP_QUEUE_PATH, run_date=None, sta
     if status:
         actions = [action for action in actions if action.get("status") == status]
     return actions
+
+
+def automation_executable_actions(actions):
+    return [action for action in actions if is_api_executable_action(action)]
+
+
+def is_api_executable_action(action):
+    if action.get("kind") != "reply_comment":
+        return False
+    platform = action.get("platform")
+    if platform == "bluesky":
+        return bool(action.get("target_url"))
+    if platform == "threads":
+        return bool(first_action_value(action, "target_thread_id", "target_media_id", "target_id"))
+    if platform == "facebook":
+        return bool(first_action_value(action, "target_object_id", "target_post_id", "target_id"))
+    if platform == "instagram":
+        return bool(first_action_value(action, "target_comment_id"))
+    return False
+
+
+def first_action_value(action, *keys):
+    for key in keys:
+        value = str(action.get(key) or "").strip()
+        if value:
+            return value
+    return ""
 
 
 def discover_follow_up_targets(

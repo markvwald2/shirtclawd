@@ -2,11 +2,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from bot.instagram_publisher import (
     build_instagram_caption,
+    create_comment_reply,
     load_posts,
     normalize_limit_response,
+    publish_comment_reply,
     publish_post,
     select_post,
 )
@@ -87,6 +90,29 @@ class InstagramPublisherTests(unittest.TestCase):
 
         self.assertEqual(state["quota_usage"], 0)
         self.assertEqual(state["quota_total"], 25)
+
+    def test_create_comment_reply_posts_to_replies_edge(self):
+        with patch("bot.instagram_publisher.api_request", return_value={"id": "reply123"}) as api_mock:
+            response = create_comment_reply("comment123", "token", "Thanks")
+
+        self.assertEqual(response["id"], "reply123")
+        self.assertIn("/comment123/replies", api_mock.call_args.args[0])
+        self.assertEqual(api_mock.call_args.kwargs["payload"]["message"], "Thanks")
+
+    def test_publish_comment_reply_returns_instagram_comment_id(self):
+        with patch("bot.instagram_publisher.api_request", return_value={"id": "reply123"}):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                log_path = Path(tmpdir) / "publish_log.jsonl"
+                result = publish_comment_reply(
+                    "Thanks",
+                    "comment123",
+                    dry_run=False,
+                    credentials={"access_token": "token", "account_id": "1784"},
+                    log_path=log_path,
+                )
+
+        self.assertEqual(result["instagram_comment_id"], "reply123")
+        self.assertEqual(result["target_comment_id"], "comment123")
 
 
 if __name__ == "__main__":

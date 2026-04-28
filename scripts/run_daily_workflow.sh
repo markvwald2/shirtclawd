@@ -52,8 +52,17 @@ run_follow_up_session_for_date() {
     --inbox-limit "${FOLLOW_UP_INBOX_LIMIT:-50}" \
     --inbox-lookback-hours "${FOLLOW_UP_INBOX_LOOKBACK_HOURS:-24}")
 
+  if [[ "${FOLLOW_UP_AUTOMATION_ONLY:-0}" == "1" ]]; then
+    session_args+=(--automation-only)
+  fi
+
   if [[ "${FOLLOW_UP_EXECUTE_APPROVED:-1}" == "1" ]]; then
-    session_args+=(--session-execute-approved --platform bluesky --limit "${FOLLOW_UP_EXECUTE_LIMIT:-3}")
+    session_args+=(--session-execute-approved --limit "${FOLLOW_UP_EXECUTE_LIMIT:-3}")
+    if [[ -n "${FOLLOW_UP_EXECUTE_PLATFORM:-}" ]]; then
+      session_args+=(--platform "$FOLLOW_UP_EXECUTE_PLATFORM")
+    elif [[ "${FOLLOW_UP_AUTOMATION_ONLY:-0}" != "1" ]]; then
+      session_args+=(--platform bluesky)
+    fi
   fi
   if [[ "$AUTO_PUBLISH" == "1" && "${FOLLOW_UP_PUBLISH_APPROVED:-1}" == "1" ]]; then
     session_args+=(--publish)

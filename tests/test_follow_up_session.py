@@ -151,6 +151,72 @@ class FollowUpSessionTests(unittest.TestCase):
         self.assertEqual(state["last_run_date"], run_date)
         self.assertTrue(any(action["action_id"] == "FU-2026-04-26-IN-3mention" for action in actions))
 
+    def test_run_follow_up_session_automation_only_suppresses_manual_queue_items(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            output_dir = root / "output"
+            data_dir = root / "data"
+            output_dir.mkdir()
+            data_dir.mkdir()
+            run_date = "2026-04-26"
+            plan = {
+                "plan_date": run_date,
+                "campaign": "coloradans_against",
+                "planned_posts": [
+                    {
+                        "slot": 1,
+                        "platform": "facebook",
+                        "shirt_id": "shirt-1",
+                        "title": "Coloradans Against Triathlons",
+                        "series": "Coloradans Against",
+                        "content_goal": "conversation",
+                        "cta_goal": "reply",
+                    }
+                ],
+            }
+            plan_path = output_dir / f"daily_plan_{run_date}.json"
+            plan_path.write_text(json.dumps(plan))
+            (output_dir / f"posts_{run_date}_facebook.json").write_text(json.dumps([plan["planned_posts"][0]]))
+            queue_path = data_dir / "follow_up_action_queue.json"
+            queue_path.write_text(
+                json.dumps(
+                    {
+                        "actions": [
+                            {
+                                "action_id": "FU-2026-04-26-O1",
+                                "date": run_date,
+                                "kind": "outreach_dm",
+                                "status": "approved",
+                                "platform": "manual",
+                                "draft_text": "Manual",
+                                "approved_text": "Manual",
+                                "created_at": "2026-04-26T14:00:00+00:00",
+                                "updated_at": "2026-04-26T14:00:00+00:00",
+                                "notes": [],
+                            }
+                        ]
+                    }
+                )
+            )
+
+            result = run_follow_up_session(
+                run_date=run_date,
+                plan_path=plan_path,
+                output_dir=output_dir,
+                log_dir=data_dir,
+                queue_path=queue_path,
+                state_path=data_dir / "follow_up_session_state.json",
+                skip_target_discovery=True,
+                fetch_inbox_items_fn=lambda **_: [],
+                automation_only=True,
+                now="2026-04-26T15:00:00+00:00",
+            )
+            actions = list_follow_up_actions(queue_path, run_date=run_date)
+
+        self.assertEqual(actions, [])
+        self.assertEqual(result["planned_action_count"], 0)
+        self.assertGreater(result["suppressed_planned_action_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,9 +9,11 @@ from urllib.parse import urlparse
 
 from bot.bluesky_inbox import BlueskyInboxError, fetch_bluesky_inbox_items
 from bot.follow_up import (
+    automation_executable_actions,
     build_follow_up_actions,
     build_follow_up_brief,
     discover_follow_up_targets,
+    is_api_executable_action,
     list_follow_up_actions,
     load_daily_plan,
     load_posts_for_plan,
@@ -44,8 +46,9 @@ def run_follow_up_session(
     inbox_lookback_hours=DEFAULT_INBOX_LOOKBACK_HOURS,
     execute_approved=False,
     publish=False,
-    execute_platform="bluesky",
+    execute_platform=None,
     execute_limit=3,
+    automation_only=False,
     now=None,
     fetch_inbox_items_fn=None,
     execute_approved_fn=None,
@@ -72,7 +75,7 @@ def run_follow_up_session(
             exclude_threads_usernames=[os.getenv("THREADS_USERNAME"), os.getenv("THREADS_USER_ID")],
         )
 
-    planned_actions = build_follow_up_actions(
+    planned_actions_all = build_follow_up_actions(
         plan=plan,
         post_refs=post_refs,
         publish_records=publish_records,
@@ -80,6 +83,7 @@ def run_follow_up_session(
         generated_at=started_iso,
         target_discovery=target_discovery,
     )
+    planned_actions = automation_executable_actions(planned_actions_all) if automation_only else planned_actions_all
 
     inbox_items = []
     inbox_error = ""
@@ -97,7 +101,11 @@ def run_follow_up_session(
         generated_at=started_iso,
     )
 
-    merge_follow_up_actions(planned_actions + inbox_actions, path=queue_path)
+    merge_follow_up_actions(
+        planned_actions + inbox_actions,
+        path=queue_path,
+        replace_run_date=run_date if automation_only else None,
+    )
 
     execution_results = []
     if execute_approved:
@@ -107,6 +115,7 @@ def run_follow_up_session(
             dry_run=not publish,
             platform=execute_platform,
             limit=execute_limit,
+            run_date=run_date,
         )
 
     queue_actions = list_follow_up_actions(queue_path, run_date=run_date)
@@ -128,6 +137,7 @@ def run_follow_up_session(
         started_at=started_iso,
         finished_at=finished_at.isoformat(),
         planned_actions=planned_actions,
+        suppressed_planned_action_count=max(0, len(planned_actions_all) - len(planned_actions)),
         inbox_items=inbox_items,
         inbox_actions=inbox_actions,
         inbox_error=inbox_error,
@@ -233,6 +243,7 @@ def summarize_session(
     started_at,
     finished_at,
     planned_actions,
+    suppressed_planned_action_count,
     inbox_items,
     inbox_actions,
     inbox_error,
@@ -245,9 +256,7 @@ def summarize_session(
         action
         for action in queue_actions
         if action.get("status") == "approved"
-        and action.get("platform") == "bluesky"
-        and action.get("kind") == "reply_comment"
-        and action.get("target_url")
+        and is_api_executable_action(action)
     ]
     approved_manual = [
         action
@@ -268,6 +277,7 @@ def summarize_session(
         "finished_at": finished_at,
         "checked_since": since,
         "planned_action_count": len(planned_actions),
+        "suppressed_planned_action_count": suppressed_planned_action_count,
         "inbox_item_count": len(inbox_items),
         "inbox_action_count": len(inbox_actions),
         "inbox_error": inbox_error,
@@ -294,6 +304,7 @@ def build_follow_up_session_report(summary, queue_actions):
         "## Catch-Up Summary",
         "",
         f"- Planned outreach actions refreshed: {summary['planned_action_count']}",
+        f"- Manual-only planned actions suppressed: {summary.get('suppressed_planned_action_count', 0)}",
         f"- New Bluesky inbox items found: {summary['inbox_item_count']}",
         f"- Inbox reply drafts queued: {summary['inbox_action_count']}",
         f"- Discovery candidates found: {summary['discovery_candidate_count']}",
@@ -362,8 +373,8 @@ def build_follow_up_session_report(summary, queue_actions):
             "## Tomorrow Handoff",
             "",
             "- Review drafted inbox replies first.",
-            "- Execute any approved Bluesky replies with `python follow_up.py --daily-session --session-execute-approved --publish`.",
-            "- Treat Instagram, Facebook, Threads, and DMs as manual until dedicated executors exist.",
+            "- Execute approved API-safe replies with `python follow_up.py --daily-session --session-execute-approved --publish`.",
+            "- Automation-only mode leaves manual-only opportunities out of the queue.",
             "",
         ]
     )

@@ -123,6 +123,57 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
     return result
 
 
+def publish_comment_reply(text, target_comment_id, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, account_id=None):
+    message = str(text or "").strip()
+    target = str(target_comment_id or "").strip()
+    resolved_account_id = account_id or (credentials or {}).get("account_id") or DEFAULT_INSTAGRAM_ACCOUNT_ID
+    result = {
+        "mode": "dry_run" if dry_run else "publish",
+        "platform": "instagram",
+        "account_id": resolved_account_id,
+        "message": message,
+        "target_comment_id": target,
+        "action_type": "comment_reply",
+    }
+
+    if not target:
+        raise InstagramPublisherError("Missing Instagram target_comment_id.")
+
+    if dry_run:
+        log_publish_event(
+            {
+                "logged_at": utc_now_iso(),
+                "status": "dry_run_comment_reply",
+                "message": message,
+                "account_id": resolved_account_id,
+                "target_comment_id": target,
+            },
+            log_path,
+        )
+        return result
+
+    resolved_credentials = dict(credentials or load_credentials())
+    if account_id:
+        resolved_credentials["account_id"] = account_id
+
+    response = create_comment_reply(
+        comment_id=target,
+        access_token=resolved_credentials["access_token"],
+        message=message,
+    )
+    event = {
+        "logged_at": utc_now_iso(),
+        "status": "published_comment_reply",
+        "message": message,
+        "account_id": resolved_account_id,
+        "target_comment_id": target,
+        "instagram_comment_id": response.get("id"),
+    }
+    log_publish_event(event, log_path)
+    result.update(event)
+    return result
+
+
 def build_instagram_caption(post, max_length=MAX_CAPTION_LENGTH):
     caption = strip_urls(post.get("caption") or "").strip()
     if len(caption) <= max_length:
@@ -201,6 +252,18 @@ def publish_media_container(account_id, access_token, creation_id):
     )
     if not response.get("id"):
         raise InstagramPublisherError(f"Unexpected Instagram publish response: {response}")
+    return response
+
+
+def create_comment_reply(comment_id, access_token, message):
+    response = api_request(
+        f"{GRAPH_BASE_URL}/{comment_id}/replies",
+        payload={"message": message},
+        method="POST",
+        access_token=access_token,
+    )
+    if not response.get("id"):
+        raise InstagramPublisherError(f"Unexpected Instagram comment reply response: {response}")
     return response
 
 

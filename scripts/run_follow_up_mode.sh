@@ -25,6 +25,7 @@ EXECUTE_APPROVED="${FOLLOW_UP_EXECUTE_APPROVED:-1}"
 PUBLISH_APPROVED="${FOLLOW_UP_PUBLISH_APPROVED:-1}"
 EXECUTE_LIMIT="${FOLLOW_UP_EXECUTE_LIMIT:-3}"
 LEGACY_LOOP="${FOLLOW_UP_LEGACY_LOOP:-0}"
+AUTOMATION_ONLY="${FOLLOW_UP_AUTOMATION_ONLY:-0}"
 
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   if [[ -x "$REPO_ROOT/.venv/bin/python3" ]]; then
@@ -43,7 +44,8 @@ echo "Date: $PLAN_DATE"
 echo "Duration seconds: $DURATION_SECONDS"
 echo "Interval seconds: $INTERVAL_SECONDS"
 echo "Approved execution: $EXECUTE_APPROVED"
-echo "Publish approved Bluesky replies: $PUBLISH_APPROVED"
+echo "Publish approved API-safe replies: $PUBLISH_APPROVED"
+echo "Automation-only queue: $AUTOMATION_ONLY"
 echo
 
 if [[ "$LEGACY_LOOP" != "1" ]]; then
@@ -56,8 +58,16 @@ if [[ "$LEGACY_LOOP" != "1" ]]; then
     --inbox-limit "$INBOX_LIMIT" \
     --inbox-lookback-hours "$INBOX_LOOKBACK_HOURS")
 
+  if [[ "$AUTOMATION_ONLY" == "1" ]]; then
+    session_args+=(--automation-only)
+  fi
   if [[ "$EXECUTE_APPROVED" == "1" ]]; then
-    session_args+=(--session-execute-approved --platform bluesky --limit "$EXECUTE_LIMIT")
+    session_args+=(--session-execute-approved --limit "$EXECUTE_LIMIT")
+    if [[ -n "${FOLLOW_UP_EXECUTE_PLATFORM:-}" ]]; then
+      session_args+=(--platform "$FOLLOW_UP_EXECUTE_PLATFORM")
+    elif [[ "$AUTOMATION_ONLY" != "1" ]]; then
+      session_args+=(--platform bluesky)
+    fi
   fi
   if [[ "$PUBLISH_APPROVED" == "1" ]]; then
     session_args+=(--publish)
@@ -73,13 +83,22 @@ while (( $(date +%s) < end_epoch )); do
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "=== Cycle $cycle at $now ==="
 
-  "$PYTHON_BIN" follow_up.py \
+  refresh_args=(follow_up.py \
     --date "$PLAN_DATE" \
     --target-search-limit "$TARGET_SEARCH_LIMIT" \
-    --target-candidates "$TARGET_CANDIDATES" || echo "Discovery refresh failed."
+    --target-candidates "$TARGET_CANDIDATES")
+  if [[ "$AUTOMATION_ONLY" == "1" ]]; then
+    refresh_args+=(--automation-only)
+  fi
+  "$PYTHON_BIN" "${refresh_args[@]}" || echo "Discovery refresh failed."
 
   if [[ "$EXECUTE_APPROVED" == "1" ]]; then
-    execute_args=(follow_up.py --execute-approved --platform bluesky --limit "$EXECUTE_LIMIT")
+    execute_args=(follow_up.py --execute-approved --date "$PLAN_DATE" --limit "$EXECUTE_LIMIT")
+    if [[ -n "${FOLLOW_UP_EXECUTE_PLATFORM:-}" ]]; then
+      execute_args+=(--platform "$FOLLOW_UP_EXECUTE_PLATFORM")
+    elif [[ "$AUTOMATION_ONLY" != "1" ]]; then
+      execute_args+=(--platform bluesky)
+    fi
     if [[ "$PUBLISH_APPROVED" == "1" ]]; then
       execute_args+=(--publish)
     fi

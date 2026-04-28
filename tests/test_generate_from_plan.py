@@ -104,7 +104,7 @@ class GenerateFromPlanTests(unittest.TestCase):
                     },
                     "usage": {},
                 },
-            ) as generate_mock:
+            ) as generate_mock, patch.object(GENERATE_POSTS, "log_usage_event"):
                 GENERATE_POSTS.generate_from_plan(
                     args=args,
                     inventory=inventory,

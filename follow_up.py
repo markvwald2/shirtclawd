@@ -73,6 +73,7 @@ def main():
     parser.add_argument("--target-candidates", type=int, default=3, help="Candidate Bluesky targets to attach per planned Bluesky post.")
     parser.add_argument("--target-search-limit", type=int, default=20, help="Bluesky search results to inspect per discovery query.")
     parser.add_argument("--target-max-age-days", type=int, default=21, help="Oldest Bluesky candidate post age to consider.")
+    parser.add_argument("--automation-only", action="store_true", help="Only queue follow-up actions that have API-executable targets.")
     args = parser.parse_args()
 
     requested_date = args.date or datetime.now().date().isoformat()
@@ -95,8 +96,9 @@ def main():
             inbox_lookback_hours=args.inbox_lookback_hours,
             execute_approved=args.session_execute_approved,
             publish=args.publish,
-            execute_platform=args.platform or "bluesky",
+            execute_platform=args.platform,
             execute_limit=args.limit if args.limit is not None else 3,
+            automation_only=args.automation_only,
         )
         print_session_result(result)
         return
@@ -107,6 +109,7 @@ def main():
             platform=args.platform,
             action_id=args.action_id,
             limit=args.limit,
+            run_date=requested_date,
         )
         print_execution_results(results)
         return
@@ -172,8 +175,9 @@ def main():
         publish_records=publish_records,
         run_date=run_date,
         target_discovery=target_discovery,
+        automation_only=args.automation_only,
     )
-    merge_follow_up_actions(actions, args.queue)
+    merge_follow_up_actions(actions, args.queue, replace_run_date=run_date if args.automation_only else None)
     markdown = build_follow_up_brief(
         plan=plan,
         post_refs=post_refs,
@@ -237,6 +241,8 @@ def print_session_result(result):
         f"{result.get('planned_action_count', 0)} planned actions and "
         f"{result.get('inbox_action_count', 0)} inbox action(s)."
     )
+    if result.get("suppressed_planned_action_count"):
+        print(f"Suppressed {result.get('suppressed_planned_action_count')} manual-only planned action(s).")
     if result.get("inbox_error"):
         print(f"Bluesky inbox unavailable: {result.get('inbox_error')}")
     execution_results = result.get("execution_results") or []

@@ -1,6 +1,7 @@
 import importlib.util
 import pathlib
 import unittest
+from unittest.mock import patch
 
 
 MODULE_PATH = pathlib.Path(__file__).resolve().parents[1] / "generate_posts.py"
@@ -33,7 +34,7 @@ class BudgetGuardTests(unittest.TestCase):
             max_ai_calls=0,
         )
 
-        with self.assertRaises(SystemExit):
+        with patch.object(GENERATE_POSTS, "log_usage_event"), self.assertRaises(SystemExit):
             GENERATE_POSTS.build_posts_for_mode(
                 shirts=shirts,
                 theme_formats=load_theme_formats(),

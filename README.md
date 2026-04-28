@@ -321,7 +321,7 @@ python follow_up.py --date 2026-04-26
 
 The brief is written to `output/follow_up_YYYY-MM-DD.md`. It reads the daily plan, generated post files, and publish logs, then produces discovery searches, candidate target posts/accounts, reply/comment drafts, creator outreach prompts, and a tracking table. Public replies, comments, DMs, follows, and offers are intentionally approval-gated. This is still available as a lower-level command, but the daily session above is the recommended morning workflow.
 
-`scripts/run_daily_workflow.sh` now runs a previous-day follow-up preflight before publishing and the full daily follow-up session after publishing unless disabled. Use `FOLLOW_UP_PREFLIGHT=0` to skip the previous-day pass, and `FOLLOW_UP_UPTIME_MINUTES`, `FOLLOW_UP_INBOX_LIMIT`, `FOLLOW_UP_EXECUTE_APPROVED`, and `FOLLOW_UP_PUBLISH_APPROVED` to tune follow-up behavior. If `FOLLOW_UP_SESSION=0`, the older brief-only behavior still runs when `FOLLOW_UP_BRIEF=1`.
+`scripts/run_daily_workflow.sh` now runs a previous-day follow-up preflight before publishing and the full daily follow-up session after publishing unless disabled. Use `FOLLOW_UP_PREFLIGHT=0` to skip the previous-day pass, and `FOLLOW_UP_UPTIME_MINUTES`, `FOLLOW_UP_INBOX_LIMIT`, `FOLLOW_UP_EXECUTE_APPROVED`, and `FOLLOW_UP_PUBLISH_APPROVED` to tune follow-up behavior. Set `FOLLOW_UP_AUTOMATION_ONLY=1` to queue only actions with API-executable targets and remove current-day manual-only leftovers from the queue. If `FOLLOW_UP_SESSION=0`, the older brief-only behavior still runs when `FOLLOW_UP_BRIEF=1`.
 
 Discovery coverage:
 
@@ -371,13 +371,19 @@ Run approved actions as a dry run:
 python follow_up.py --execute-approved --platform bluesky
 ```
 
-Execute approved Bluesky replies:
+Run a follow-up refresh without manual-only queue items:
 
 ```bash
-python follow_up.py --execute-approved --platform bluesky --publish --limit 3
+python follow_up.py --daily-session --date 2026-04-26 --automation-only
 ```
 
-Execution is intentionally narrow in the supervised pilot. Bluesky reply/comment actions can execute when the approved action has a `target_url` that is either a `bsky.app` post URL or an `at://` post URI. Instagram, Facebook, Threads, and outreach DMs remain approval-tracked but manually sent until their platform-specific execution paths are added.
+Execute approved API-safe replies/comments:
+
+```bash
+python follow_up.py --execute-approved --publish --limit 3
+```
+
+Execution is still guarded in the supervised pilot. Bluesky reply/comment actions can execute when the approved action has a `target_url` that is either a `bsky.app` post URL or an `at://` post URI. Threads replies can execute when the action has a `target_thread_id`, `target_media_id`, or non-URL target ID. Facebook comments can execute when the action has a Graph object ID such as `target_object_id` or `target_post_id`. Instagram execution is limited to replies to owned-media comments with a `target_comment_id`. Hashtag/page/search targets and outreach DMs stay out of the queue in automation-only mode; outside that mode they remain approval-tracked and return `manual_required`.
 
 ## Data Flow
 

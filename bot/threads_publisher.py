@@ -114,6 +114,65 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
     return result
 
 
+def publish_reply(text, target_thread_id, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, username=None):
+    reply_text = trim_text(str(text or "").strip(), MAX_POST_LENGTH)
+    resolved_credentials = dict(credentials or {})
+    resolved_username = username or resolved_credentials.get("username") or DEFAULT_THREADS_USERNAME
+    resolved_user_id = resolved_credentials.get("user_id") or os.getenv("THREADS_USER_ID", "")
+    result = {
+        "mode": "dry_run" if dry_run else "publish",
+        "platform": "threads",
+        "username": resolved_username,
+        "user_id": resolved_user_id,
+        "text": reply_text,
+        "target_thread_id": str(target_thread_id or "").strip(),
+        "action_type": "reply",
+    }
+
+    if not result["target_thread_id"]:
+        raise ThreadsPublisherError("Missing Threads reply target_thread_id.")
+
+    if dry_run:
+        log_publish_event(
+            {
+                "logged_at": utc_now_iso(),
+                "status": "dry_run_reply",
+                "text": reply_text,
+                "target_thread_id": result["target_thread_id"],
+                "username": resolved_username,
+                "user_id": resolved_user_id,
+            },
+            log_path,
+        )
+        return result
+
+    resolved_credentials = credentials or load_credentials()
+    creation_id = create_container(
+        user_id=resolved_credentials["user_id"],
+        access_token=resolved_credentials["access_token"],
+        text=reply_text,
+        reply_to_id=result["target_thread_id"],
+    )
+    response = publish_container(
+        user_id=resolved_credentials["user_id"],
+        access_token=resolved_credentials["access_token"],
+        creation_id=creation_id,
+    )
+    event = {
+        "logged_at": utc_now_iso(),
+        "status": "published_reply",
+        "text": reply_text,
+        "username": resolved_username,
+        "user_id": resolved_credentials["user_id"],
+        "target_thread_id": result["target_thread_id"],
+        "creation_id": creation_id,
+        "threads_media_id": response.get("id"),
+    }
+    log_publish_event(event, log_path)
+    result.update(event)
+    return result
+
+
 def resolve_image_url(post):
     image_url = str(post.get("image_url") or "").strip()
     if image_url:
@@ -173,7 +232,7 @@ def trim_text(text, limit):
     return text[: limit - 1].rstrip() + "…"
 
 
-def create_container(user_id, access_token, text, image_url=None, alt_text=None):
+def create_container(user_id, access_token, text, image_url=None, alt_text=None, reply_to_id=None):
     payload = {"text": text}
     if image_url:
         payload.update(
@@ -186,6 +245,8 @@ def create_container(user_id, access_token, text, image_url=None, alt_text=None)
             payload["alt_text"] = alt_text
     else:
         payload["media_type"] = "TEXT"
+    if reply_to_id:
+        payload["reply_to_id"] = reply_to_id
 
     response = api_request(
         f"{THREADS_BASE_URL}/{user_id}/threads",

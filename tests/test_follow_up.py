@@ -184,6 +184,180 @@ class FollowUpTests(unittest.TestCase):
         self.assertEqual(actions[-1]["action_id"], "FU-2026-04-26-O3")
         self.assertEqual(actions[-1]["kind"], "outreach_dm")
 
+    def test_build_follow_up_actions_automation_only_keeps_executable_targets(self):
+        plan = {
+            "plan_date": "2026-04-26",
+            "campaign": "coloradans_against",
+            "planned_posts": [
+                {
+                    "slot": 1,
+                    "platform": "threads",
+                    "shirt_id": "shirt-1",
+                    "title": "Coloradans Against Fourteeners",
+                    "series": "Coloradans Against",
+                    "content_goal": "conversation",
+                    "cta_goal": "reply",
+                }
+            ],
+        }
+        post_refs = [
+            {
+                "entry": plan["planned_posts"][0],
+                "post": plan["planned_posts"][0],
+                "source_file": "output/posts.json",
+            }
+        ]
+
+        actions = build_follow_up_actions(
+            plan,
+            post_refs,
+            [],
+            run_date="2026-04-26",
+            generated_at="2026-04-26T14:00:00+00:00",
+            target_discovery={
+                "FU-2026-04-26-01": {
+                    "candidates": [
+                        {
+                            "platform": "threads",
+                            "url": "https://www.threads.net/@local/post/abc",
+                            "uri": "thread123",
+                            "author_display_name": "@local",
+                            "query": "Colorado fourteeners",
+                            "reason": "Fresh Threads post.",
+                            "created_at": "2026-04-25T10:44:11+00:00",
+                            "score": 72.5,
+                        }
+                    ]
+                }
+            },
+            automation_only=True,
+        )
+
+        self.assertEqual([action["action_id"] for action in actions], ["FU-2026-04-26-01-R1"])
+        self.assertEqual(actions[0]["target_thread_id"], "thread123")
+
+    def test_build_follow_up_actions_automation_only_drops_manual_candidates(self):
+        plan = {
+            "plan_date": "2026-04-26",
+            "campaign": "coloradans_against",
+            "planned_posts": [
+                {
+                    "slot": 1,
+                    "platform": "facebook",
+                    "shirt_id": "shirt-1",
+                    "title": "Coloradans Against Triathlons",
+                    "series": "Coloradans Against",
+                    "content_goal": "conversation",
+                    "cta_goal": "reply",
+                }
+            ],
+        }
+        post_refs = [{"entry": plan["planned_posts"][0], "post": plan["planned_posts"][0]}]
+
+        actions = build_follow_up_actions(
+            plan,
+            post_refs,
+            [],
+            run_date="2026-04-26",
+            target_discovery={
+                "FU-2026-04-26-01": {
+                    "candidates": [
+                        {
+                            "platform": "facebook",
+                            "url": "https://www.facebook.com/search/posts/?q=triathlons",
+                            "uri": "https://www.facebook.com/search/posts/?q=triathlons",
+                            "manual_review": True,
+                        }
+                    ]
+                }
+            },
+            automation_only=True,
+        )
+
+        self.assertEqual(actions, [])
+
+    def test_build_follow_up_actions_automation_only_drops_instagram_media_without_comment_id(self):
+        plan = {
+            "plan_date": "2026-04-26",
+            "campaign": "coloradans_against",
+            "planned_posts": [
+                {
+                    "slot": 1,
+                    "platform": "instagram",
+                    "shirt_id": "shirt-1",
+                    "title": "Coloradans Against Hiking",
+                    "series": "Coloradans Against",
+                    "content_goal": "conversation",
+                    "cta_goal": "reply",
+                }
+            ],
+        }
+        post_refs = [{"entry": plan["planned_posts"][0], "post": plan["planned_posts"][0]}]
+
+        actions = build_follow_up_actions(
+            plan,
+            post_refs,
+            [],
+            run_date="2026-04-26",
+            target_discovery={
+                "FU-2026-04-26-01": {
+                    "candidates": [
+                        {
+                            "platform": "instagram",
+                            "url": "https://www.instagram.com/p/example/",
+                            "uri": "media123",
+                            "author_display_name": "Instagram #hiking",
+                        }
+                    ]
+                }
+            },
+            automation_only=True,
+        )
+
+        self.assertEqual(actions, [])
+
+    def test_build_follow_up_actions_automation_only_keeps_instagram_comment_id(self):
+        plan = {
+            "plan_date": "2026-04-26",
+            "campaign": "coloradans_against",
+            "planned_posts": [
+                {
+                    "slot": 1,
+                    "platform": "instagram",
+                    "shirt_id": "shirt-1",
+                    "title": "Coloradans Against Hiking",
+                    "series": "Coloradans Against",
+                    "content_goal": "conversation",
+                    "cta_goal": "reply",
+                }
+            ],
+        }
+        post_refs = [{"entry": plan["planned_posts"][0], "post": plan["planned_posts"][0]}]
+
+        actions = build_follow_up_actions(
+            plan,
+            post_refs,
+            [],
+            run_date="2026-04-26",
+            target_discovery={
+                "FU-2026-04-26-01": {
+                    "candidates": [
+                        {
+                            "platform": "instagram",
+                            "url": "https://www.instagram.com/p/example/",
+                            "uri": "media123",
+                            "comment_id": "comment123",
+                            "author_display_name": "Owned media comment",
+                        }
+                    ]
+                }
+            },
+            automation_only=True,
+        )
+
+        self.assertEqual([action["action_id"] for action in actions], ["FU-2026-04-26-01-R1"])
+        self.assertEqual(actions[0]["target_comment_id"], "comment123")
+
     def test_follow_up_queue_approves_sends_skips_and_preserves_status_on_merge(self):
         actions = [
             {
@@ -243,6 +417,30 @@ class FollowUpTests(unittest.TestCase):
         self.assertEqual([action["action_id"] for action in sent_actions], ["FU-2026-04-26-01-R1"])
         self.assertEqual([action["action_id"] for action in skipped_actions], ["FU-2026-04-26-O1"])
 
+    def test_merge_replace_run_date_drops_stale_current_date_actions(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            queue_path = Path(tmpdir) / "follow_up_action_queue.json"
+            merge_follow_up_actions(
+                [
+                    {
+                        "action_id": "FU-2026-04-26-O1",
+                        "date": "2026-04-26",
+                        "kind": "outreach_dm",
+                        "status": "drafted",
+                        "draft_text": "Manual",
+                        "approved_text": "",
+                        "created_at": "2026-04-26T14:00:00+00:00",
+                        "updated_at": "2026-04-26T14:00:00+00:00",
+                        "notes": [],
+                    }
+                ],
+                path=queue_path,
+            )
+
+            merge_follow_up_actions([], path=queue_path, replace_run_date="2026-04-26")
+
+            self.assertEqual(list_follow_up_actions(queue_path, run_date="2026-04-26"), [])
+
     def test_merge_does_not_apply_new_candidate_metadata_to_skipped_action(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             queue_path = Path(tmpdir) / "follow_up_action_queue.json"
@@ -294,6 +492,52 @@ class FollowUpTests(unittest.TestCase):
         self.assertEqual(skipped["target_url"], "https://bsky.app/profile/old.example/post/3old")
         self.assertNotIn("target_author_display_name", skipped)
         self.assertNotIn("target_reason", skipped)
+
+    def test_merge_preserves_approved_threads_target_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            queue_path = Path(tmpdir) / "follow_up_action_queue.json"
+            merge_follow_up_actions(
+                [
+                    {
+                        "action_id": "FU-2026-04-26-04-R1",
+                        "date": "2026-04-26",
+                        "kind": "reply_comment",
+                        "status": "drafted",
+                        "platform": "threads",
+                        "target_url": "https://www.threads.net/@local/post/abc",
+                        "target_thread_id": "thread123",
+                        "draft_text": "Draft",
+                        "approved_text": "",
+                        "created_at": "2026-04-26T14:00:00+00:00",
+                        "updated_at": "2026-04-26T14:00:00+00:00",
+                        "notes": [],
+                    }
+                ],
+                path=queue_path,
+            )
+            approve_follow_up_action("FU-2026-04-26-04-R1", path=queue_path)
+
+            merge_follow_up_actions(
+                [
+                    {
+                        "action_id": "FU-2026-04-26-04-R1",
+                        "date": "2026-04-26",
+                        "kind": "reply_comment",
+                        "status": "drafted",
+                        "platform": "threads",
+                        "target_url": "https://www.threads.net/search?q=fourteeners",
+                        "draft_text": "Draft",
+                        "approved_text": "",
+                        "created_at": "2026-04-26T15:00:00+00:00",
+                        "updated_at": "2026-04-26T15:00:00+00:00",
+                        "notes": [],
+                    }
+                ],
+                path=queue_path,
+            )
+            approved = list_follow_up_actions(queue_path, status="approved")[0]
+
+        self.assertEqual(approved["target_thread_id"], "thread123")
 
     def test_merge_refreshes_drafted_auto_candidate_target(self):
         with tempfile.TemporaryDirectory() as tmpdir:

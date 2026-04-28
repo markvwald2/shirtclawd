@@ -7,7 +7,9 @@ from unittest.mock import patch
 from bot.facebook_publisher import (
     build_facebook_link,
     build_facebook_message,
+    create_object_comment,
     load_posts,
+    publish_comment,
     publish_post,
     select_post,
 )
@@ -105,6 +107,27 @@ class FacebookPublisherTests(unittest.TestCase):
             path.write_text(json.dumps([{"shirt_id": "1"}]))
             posts = load_posts(path)
             self.assertEqual(len(posts), 1)
+
+    def test_create_object_comment_posts_to_comments_edge(self):
+        with patch("bot.facebook_publisher.api_request", return_value={"id": "comment123"}) as api_mock:
+            response = create_object_comment("page123_post456", "token", "Reply text")
+
+        self.assertEqual(response["id"], "comment123")
+        self.assertIn("/page123_post456/comments", api_mock.call_args.args[0])
+        self.assertEqual(api_mock.call_args.kwargs["payload"]["message"], "Reply text")
+
+    def test_publish_comment_returns_facebook_comment_id(self):
+        with patch("bot.facebook_publisher.api_request", return_value={"id": "comment123"}):
+            result = publish_comment(
+                "Reply text",
+                "page123_post456",
+                dry_run=False,
+                credentials={"access_token": "token", "page_id": "page123"},
+                log_path=TEST_LOG_PATH,
+            )
+
+        self.assertEqual(result["facebook_comment_id"], "comment123")
+        self.assertEqual(result["target_object_id"], "page123_post456")
 
 
 if __name__ == "__main__":
