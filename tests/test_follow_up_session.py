@@ -217,6 +217,77 @@ class FollowUpSessionTests(unittest.TestCase):
         self.assertEqual(result["planned_action_count"], 0)
         self.assertGreater(result["suppressed_planned_action_count"], 0)
 
+    def test_run_follow_up_session_report_includes_prior_date_carryover(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            output_dir = root / "output"
+            data_dir = root / "data"
+            output_dir.mkdir()
+            data_dir.mkdir()
+            run_date = "2026-04-27"
+            prior_date = "2026-04-26"
+            plan = {
+                "plan_date": run_date,
+                "campaign": "coloradans_against",
+                "planned_posts": [
+                    {
+                        "slot": 1,
+                        "platform": "bluesky",
+                        "shirt_id": "shirt-1",
+                        "title": "Coloradans Against Craft Beer",
+                        "series": "Coloradans Against",
+                        "content_goal": "conversation",
+                        "cta_goal": "reply",
+                    }
+                ],
+            }
+            plan_path = output_dir / f"daily_plan_{run_date}.json"
+            plan_path.write_text(json.dumps(plan))
+            (output_dir / f"posts_{run_date}_bluesky.json").write_text(json.dumps([plan["planned_posts"][0]]))
+            queue_path = data_dir / "follow_up_action_queue.json"
+            queue_path.write_text(
+                json.dumps(
+                    {
+                        "actions": [
+                            {
+                                "action_id": "FU-2026-04-26-O1",
+                                "date": prior_date,
+                                "kind": "outreach_dm",
+                                "status": "approved",
+                                "platform": "manual",
+                                "target_type": "One-off local newsletter",
+                                "target_url": "",
+                                "draft_text": "Manual",
+                                "approved_text": "Manual",
+                                "created_at": "2026-04-26T14:00:00+00:00",
+                                "updated_at": "2026-04-26T14:00:00+00:00",
+                                "notes": [],
+                            }
+                        ]
+                    }
+                )
+            )
+
+            result = run_follow_up_session(
+                run_date=run_date,
+                plan_path=plan_path,
+                output_dir=output_dir,
+                log_dir=data_dir,
+                queue_path=queue_path,
+                state_path=data_dir / "follow_up_session_state.json",
+                skip_target_discovery=True,
+                fetch_inbox_items_fn=lambda **_: [],
+                now="2026-04-27T15:00:00+00:00",
+            )
+            report = Path(result["session_report_path"]).read_text()
+            prior_actions = list_follow_up_actions(queue_path, run_date=prior_date)
+
+        self.assertEqual(result["carryover_pending_count"], 1)
+        self.assertIn("- Carryover drafted/approved actions: 1", report)
+        self.assertIn("## Carryover Backlog", report)
+        self.assertIn("`FU-2026-04-26-O1` (2026-04-26) [approved]", report)
+        self.assertEqual(len(prior_actions), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

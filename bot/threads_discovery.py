@@ -200,7 +200,9 @@ def get_json_request(url, payload):
             raw = response.read().decode("utf-8")
     except HTTPError as exc:
         error_body = exc.read().decode("utf-8", errors="replace")
-        raise ThreadsDiscoveryError(f"Threads search failed: {exc.code} {error_body}") from exc
+        hint = threads_access_hint(error_body)
+        suffix = f" {hint}" if hint else ""
+        raise ThreadsDiscoveryError(f"Threads search failed: {exc.code} {error_body}{suffix}") from exc
     except URLError as exc:
         raise ThreadsDiscoveryError(f"Threads search failed: {exc}") from exc
 
@@ -208,3 +210,22 @@ def get_json_request(url, payload):
         return json.loads(raw)
     except json.JSONDecodeError as exc:
         raise ThreadsDiscoveryError(f"Threads search returned invalid JSON: {exc}") from exc
+
+
+def threads_access_hint(error_body):
+    try:
+        payload = json.loads(error_body)
+    except json.JSONDecodeError:
+        return ""
+    error = payload.get("error") if isinstance(payload, dict) else {}
+    if not isinstance(error, dict):
+        return ""
+    code = error.get("code")
+    subcode = error.get("error_subcode")
+    message = " ".join(
+        str(error.get(key) or "")
+        for key in ("message", "error_user_title", "error_user_msg")
+    ).lower()
+    if code == 10 or subcode == 4279067 or "access tier" in message or "app review" in message:
+        return "Threads keyword search needs the app's Threads API access tier/app review before targets can be automated."
+    return ""

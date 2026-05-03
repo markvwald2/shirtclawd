@@ -28,6 +28,7 @@ from bot.follow_up_executor import execute_approved_actions
 DEFAULT_FOLLOW_UP_SESSION_STATE_PATH = Path("data/follow_up_session_state.json")
 DEFAULT_SESSION_REPORT_PREFIX = "follow_up_session"
 DEFAULT_INBOX_LOOKBACK_HOURS = 24
+PENDING_FOLLOW_UP_STATUSES = ("drafted", "approved")
 
 
 def run_follow_up_session(
@@ -119,6 +120,11 @@ def run_follow_up_session(
         )
 
     queue_actions = list_follow_up_actions(queue_path, run_date=run_date)
+    carryover_actions = [
+        action
+        for action in list_follow_up_actions(queue_path)
+        if is_pending_follow_up_action(action) and is_prior_run_date(action.get("date"), run_date)
+    ]
     follow_up_markdown = build_follow_up_brief(
         plan=plan,
         post_refs=post_refs,
@@ -144,8 +150,9 @@ def run_follow_up_session(
         queue_actions=queue_actions,
         execution_results=execution_results,
         target_discovery=target_discovery,
+        carryover_actions=carryover_actions,
     )
-    session_report = build_follow_up_session_report(summary, queue_actions)
+    session_report = build_follow_up_session_report(summary, queue_actions, carryover_actions=carryover_actions)
     session_report_path = write_follow_up_session_report(session_report, run_date, output_dir)
 
     checked_at_for_state = finished_at.isoformat() if not inbox_error else since
@@ -250,8 +257,11 @@ def summarize_session(
     queue_actions,
     execution_results,
     target_discovery,
+    carryover_actions=None,
 ):
     status_counts = Counter(action.get("status", "unknown") for action in queue_actions)
+    carryover_actions = list(carryover_actions or [])
+    carryover_status_counts = Counter(action.get("status", "unknown") for action in carryover_actions)
     approved_supported = [
         action
         for action in queue_actions
@@ -282,6 +292,8 @@ def summarize_session(
         "inbox_action_count": len(inbox_actions),
         "inbox_error": inbox_error,
         "queue_status_counts": dict(sorted(status_counts.items())),
+        "carryover_status_counts": dict(sorted(carryover_status_counts.items())),
+        "carryover_pending_count": len(carryover_actions),
         "approved_supported_count": len(approved_supported),
         "approved_manual_count": len(approved_manual),
         "execution_results": execution_results,
@@ -293,7 +305,8 @@ def summarize_session(
     }
 
 
-def build_follow_up_session_report(summary, queue_actions):
+def build_follow_up_session_report(summary, queue_actions, carryover_actions=None):
+    carryover_actions = list(carryover_actions or [])
     lines = [
         f"# ShirtClawd Daily Follow-Up Session - {summary['run_date']}",
         "",
@@ -308,6 +321,7 @@ def build_follow_up_session_report(summary, queue_actions):
         f"- New Bluesky inbox items found: {summary['inbox_item_count']}",
         f"- Inbox reply drafts queued: {summary['inbox_action_count']}",
         f"- Discovery candidates found: {summary['discovery_candidate_count']}",
+        f"- Carryover drafted/approved actions: {summary.get('carryover_pending_count', 0)}",
         f"- Approved API-safe actions still ready: {summary['approved_supported_count']}",
         f"- Approved manual/unsupported actions still ready: {summary['approved_manual_count']}",
     ]
@@ -343,10 +357,23 @@ def build_follow_up_session_report(summary, queue_actions):
             detail = result.get("external_action_id") or result.get("reason") or result.get("target_url") or ""
             lines.append(f"- `{result.get('action_id')}` [{result.get('status')}]: {detail}")
 
+    lines.extend(
+        [
+            "",
+            "## Carryover Backlog",
+            "",
+        ]
+    )
+    if not carryover_actions:
+        lines.append("- No drafted or approved follow-up actions from prior dates.")
+    else:
+        for action in carryover_actions:
+            lines.append(format_follow_up_action_line(action, include_date=True))
+
     pending = [
         action
         for action in queue_actions
-        if action.get("status") in ("drafted", "approved")
+        if is_pending_follow_up_action(action)
     ]
     lines.extend(
         [
@@ -359,13 +386,7 @@ def build_follow_up_session_report(summary, queue_actions):
         lines.append("- No drafted or approved follow-up actions remain.")
     else:
         for action in pending:
-            label = action.get("target_author_display_name") or action.get("target_author_handle") or action.get("target_type") or action.get("title") or action.get("action_id")
-            target = action.get("target_url") or action.get("target_search_url") or ""
-            target_part = f" -> {target}" if target else ""
-            lines.append(
-                f"- `{action.get('action_id')}` [{action.get('status')}] "
-                f"{action.get('platform')} {action.get('kind')} {table_cell(label)}{target_part}"
-            )
+            lines.append(format_follow_up_action_line(action))
 
     lines.extend(
         [
@@ -379,6 +400,33 @@ def build_follow_up_session_report(summary, queue_actions):
         ]
     )
     return "\n".join(lines)
+
+
+def is_pending_follow_up_action(action):
+    return action.get("status") in PENDING_FOLLOW_UP_STATUSES
+
+
+def is_prior_run_date(action_date, run_date):
+    if not action_date:
+        return False
+    return str(action_date) < str(run_date)
+
+
+def format_follow_up_action_line(action, include_date=False):
+    label = (
+        action.get("target_author_display_name")
+        or action.get("target_author_handle")
+        or action.get("target_type")
+        or action.get("title")
+        or action.get("action_id")
+    )
+    date_part = f" ({action.get('date')})" if include_date and action.get("date") else ""
+    target = action.get("target_url") or action.get("target_search_url") or ""
+    target_part = f" -> {target}" if target else ""
+    return (
+        f"- `{action.get('action_id')}`{date_part} [{action.get('status')}] "
+        f"{action.get('platform')} {action.get('kind')} {table_cell(label)}{target_part}"
+    )
 
 
 def write_follow_up_session_report(markdown, run_date, output_dir=Path("output")):

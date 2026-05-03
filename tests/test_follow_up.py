@@ -7,6 +7,9 @@ from bot.follow_up import (
     approve_follow_up_action,
     build_follow_up_actions,
     build_follow_up_brief,
+    cleanup_follow_up_backlog,
+    daily_plan_date_for_path,
+    find_latest_daily_plan,
     list_follow_up_actions,
     load_follow_up_queue,
     load_posts_for_plan,
@@ -440,6 +443,101 @@ class FollowUpTests(unittest.TestCase):
             merge_follow_up_actions([], path=queue_path, replace_run_date="2026-04-26")
 
             self.assertEqual(list_follow_up_actions(queue_path, run_date="2026-04-26"), [])
+
+    def test_cleanup_follow_up_backlog_skips_duplicate_and_stale_manual_actions(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            queue_path = Path(tmpdir) / "follow_up_action_queue.json"
+            queue_path.write_text(
+                json.dumps(
+                    {
+                        "actions": [
+                            {
+                                "action_id": "FU-2026-04-26-02-R1",
+                                "date": "2026-04-26",
+                                "kind": "reply_comment",
+                                "status": "approved",
+                                "platform": "instagram",
+                                "target_url": "https://www.instagram.com/explore/tags/coloradohiking/",
+                                "draft_text": "Old",
+                                "approved_text": "Old",
+                                "created_at": "2026-04-26T14:00:00+00:00",
+                                "updated_at": "2026-04-26T14:00:00+00:00",
+                                "notes": [],
+                            },
+                            {
+                                "action_id": "FU-2026-04-27-O1",
+                                "date": "2026-04-27",
+                                "kind": "outreach_dm",
+                                "status": "approved",
+                                "platform": "manual",
+                                "target_type": "One-off local newsletter",
+                                "draft_text": "Stale",
+                                "approved_text": "Stale",
+                                "created_at": "2026-04-27T14:00:00+00:00",
+                                "updated_at": "2026-04-27T14:00:00+00:00",
+                                "notes": [],
+                            },
+                            {
+                                "action_id": "FU-2026-04-29-02-R1",
+                                "date": "2026-04-29",
+                                "kind": "reply_comment",
+                                "status": "drafted",
+                                "platform": "instagram",
+                                "target_url": "https://www.instagram.com/explore/tags/coloradohiking/",
+                                "draft_text": "Newest",
+                                "approved_text": "",
+                                "created_at": "2026-04-29T14:00:00+00:00",
+                                "updated_at": "2026-04-29T14:00:00+00:00",
+                                "notes": [],
+                            },
+                            {
+                                "action_id": "FU-2026-04-26-01-R1",
+                                "date": "2026-04-26",
+                                "kind": "reply_comment",
+                                "status": "approved",
+                                "platform": "bluesky",
+                                "target_url": "https://bsky.app/profile/example/post/3abc",
+                                "draft_text": "API-safe",
+                                "approved_text": "API-safe",
+                                "created_at": "2026-04-26T14:00:00+00:00",
+                                "updated_at": "2026-04-26T14:00:00+00:00",
+                                "notes": [],
+                            },
+                        ]
+                    }
+                )
+            )
+
+            summary = cleanup_follow_up_backlog(
+                path=queue_path,
+                reference_date="2026-04-29",
+                max_carryover_days=1,
+            )
+            actions = {action["action_id"]: action for action in list_follow_up_actions(queue_path)}
+
+        self.assertEqual(summary["skipped_duplicate_count"], 1)
+        self.assertEqual(summary["skipped_stale_count"], 1)
+        self.assertEqual(actions["FU-2026-04-26-02-R1"]["status"], "skipped")
+        self.assertEqual(actions["FU-2026-04-27-O1"]["status"], "skipped")
+        self.assertEqual(actions["FU-2026-04-29-02-R1"]["status"], "drafted")
+        self.assertEqual(actions["FU-2026-04-26-01-R1"]["status"], "approved")
+
+    def test_find_latest_daily_plan_can_use_latest_prior_plan(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            for plan_date in ("2026-04-26", "2026-04-29", "2026-05-03"):
+                (output_dir / f"daily_plan_{plan_date}.json").write_text(
+                    json.dumps({"plan_date": plan_date, "planned_posts": []})
+                )
+            manual_path = output_dir / "daily_plan_2026-04-30_manual_now.json"
+            manual_path.write_text(json.dumps({"planned_posts": []}))
+
+            latest_prior = find_latest_daily_plan(output_dir, before_date="2026-05-03")
+            latest_any = find_latest_daily_plan(output_dir)
+
+        self.assertEqual(latest_prior.name, "daily_plan_2026-04-30_manual_now.json")
+        self.assertEqual(daily_plan_date_for_path(latest_prior), "2026-04-30")
+        self.assertEqual(latest_any.name, "daily_plan_2026-05-03.json")
 
     def test_merge_does_not_apply_new_candidate_metadata_to_skipped_action(self):
         with tempfile.TemporaryDirectory() as tmpdir:

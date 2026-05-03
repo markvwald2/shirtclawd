@@ -34,6 +34,40 @@ print((date.fromisoformat(sys.argv[1]) - timedelta(days=1)).isoformat())
 PY
 }
 
+latest_prior_plan_date() {
+  "$PYTHON_BIN" - "$1" <<'PY'
+import json
+import re
+import sys
+from datetime import date
+from pathlib import Path
+
+target = date.fromisoformat(sys.argv[1])
+pattern = re.compile(r"^daily_plan_(\d{4}-\d{2}-\d{2})(?:[_-].*)?\.json$")
+candidates = []
+for path in Path("output").glob("daily_plan_*.json"):
+    plan_date = ""
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        payload = None
+    if isinstance(payload, dict):
+        plan_date = str(payload.get("plan_date") or "")
+    if not plan_date:
+        match = pattern.match(path.name)
+        plan_date = match.group(1) if match else ""
+    try:
+        plan_day = date.fromisoformat(plan_date[:10])
+    except ValueError:
+        continue
+    if plan_day < target:
+        candidates.append((plan_day, path.name))
+
+if candidates:
+    print(max(candidates)[0].isoformat())
+PY
+}
+
 run_follow_up_session_for_date() {
   local session_date="$1"
   if [[ "${FOLLOW_UP_SESSION:-1}" != "1" ]]; then
@@ -72,12 +106,22 @@ run_follow_up_session_for_date() {
 }
 
 if [[ "${FOLLOW_UP_PREFLIGHT:-1}" == "1" ]]; then
-  PREFLIGHT_DATE="${FOLLOW_UP_PREFLIGHT_DATE:-$(previous_plan_date "$PLAN_DATE")}"
-  if [[ -f "output/daily_plan_${PREFLIGHT_DATE}.json" ]]; then
-    echo "Running preflight follow-up session for $PREFLIGHT_DATE"
+  if [[ -n "${FOLLOW_UP_PREFLIGHT_DATE:-}" ]]; then
+    PREFLIGHT_DATE="$FOLLOW_UP_PREFLIGHT_DATE"
+  else
+    PREFLIGHT_DATE="$(latest_prior_plan_date "$PLAN_DATE")"
+  fi
+  if [[ -n "$PREFLIGHT_DATE" && -f "output/daily_plan_${PREFLIGHT_DATE}.json" ]]; then
+    echo "Running preflight follow-up session for latest prior plan $PREFLIGHT_DATE"
     run_follow_up_session_for_date "$PREFLIGHT_DATE"
   else
-    echo "No preflight follow-up plan found for $PREFLIGHT_DATE; skipping."
+    FALLBACK_PREFLIGHT_DATE="$(previous_plan_date "$PLAN_DATE")"
+    if [[ -f "output/daily_plan_${FALLBACK_PREFLIGHT_DATE}.json" ]]; then
+      echo "Running preflight follow-up session for $FALLBACK_PREFLIGHT_DATE"
+      run_follow_up_session_for_date "$FALLBACK_PREFLIGHT_DATE"
+    else
+      echo "No preflight follow-up plan found before $PLAN_DATE; skipping."
+    fi
   fi
 fi
 

@@ -1,7 +1,14 @@
+import json
 import unittest
 from datetime import datetime, timezone
 
-from bot.threads_discovery import candidate_from_media, find_reply_candidates, normalize_username, threads_search_url
+from bot.threads_discovery import (
+    candidate_from_media,
+    find_reply_candidates,
+    normalize_username,
+    threads_access_hint,
+    threads_search_url,
+)
 
 
 class ThreadsDiscoveryTests(unittest.TestCase):
@@ -69,6 +76,22 @@ class ThreadsDiscoveryTests(unittest.TestCase):
 
     def test_threads_search_url_encodes_query(self):
         self.assertEqual(threads_search_url("Colorado craft beer"), "https://www.threads.net/search?q=Colorado+craft+beer")
+
+    def test_threads_access_hint_explains_access_tier_errors(self):
+        hint = threads_access_hint(
+            json.dumps(
+                {
+                    "error": {
+                        "code": 10,
+                        "error_subcode": 4279067,
+                        "error_user_title": "App Does Not Have Sufficient Access Tier",
+                        "error_user_msg": "App review might be required.",
+                    }
+                }
+            )
+        )
+
+        self.assertIn("access tier", hint.lower())
 
 
 def sample_media(

@@ -1,7 +1,7 @@
 import json
 import re
 import tempfile
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -30,6 +30,9 @@ PUBLISH_LOG_FILENAMES = {
 
 DEFAULT_FOLLOW_UP_QUEUE_PATH = Path("data/follow_up_action_queue.json")
 ACTION_STATUSES = ("drafted", "approved", "sent", "skipped")
+PENDING_ACTION_STATUSES = ("drafted", "approved")
+DEFAULT_CARRYOVER_MAX_DAYS = 1
+DAILY_PLAN_FILENAME_RE = re.compile(r"^daily_plan_(\d{4}-\d{2}-\d{2})(?:[_-].*)?\.json$")
 
 EXTERNAL_ID_KEYS = (
     "uri",
@@ -40,6 +43,53 @@ EXTERNAL_ID_KEYS = (
     "post_id",
     "id",
 )
+
+
+def find_latest_daily_plan(output_dir=Path("output"), before_date=None, by_mtime=False):
+    output_path = Path(output_dir)
+    if not output_path.exists():
+        return None
+
+    cutoff_day = parse_action_day(before_date)
+    candidates = []
+    for path in output_path.glob("daily_plan_*.json"):
+        if not path.is_file():
+            continue
+        plan_date = daily_plan_date_for_path(path)
+        plan_day = parse_action_day(plan_date)
+        if not plan_day:
+            continue
+        if cutoff_day and plan_day >= cutoff_day:
+            continue
+        try:
+            mtime = path.stat().st_mtime_ns
+        except OSError:
+            mtime = 0
+        date_key = plan_day.isoformat()
+        sort_key = (mtime, date_key, path.name) if by_mtime else (date_key, mtime, path.name)
+        candidates.append((sort_key, path))
+
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def daily_plan_date_for_path(path):
+    plan_path = Path(path)
+    filename_match = DAILY_PLAN_FILENAME_RE.match(plan_path.name)
+    filename_date = filename_match.group(1) if filename_match else ""
+
+    try:
+        with plan_path.open() as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return filename_date
+
+    if isinstance(payload, dict):
+        plan_date = payload.get("plan_date")
+        if parse_action_day(plan_date):
+            return str(plan_date)[:10]
+    return filename_date
 
 
 def build_follow_up_brief(
@@ -416,7 +466,7 @@ def save_follow_up_queue(queue, path=DEFAULT_FOLLOW_UP_QUEUE_PATH):
     temp_path.replace(queue_path)
 
 
-def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH, replace_run_date=None):
+def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH, replace_run_date=None, cleanup_backlog=True):
     queue = load_follow_up_queue(path)
     existing = {action.get("action_id"): action for action in queue.get("actions", [])}
     merged = []
@@ -489,8 +539,138 @@ def merge_follow_up_actions(actions, path=DEFAULT_FOLLOW_UP_QUEUE_PATH, replace_
 
     merged.sort(key=lambda item: item.get("action_id", ""))
     queue["actions"] = merged
+    if cleanup_backlog:
+        cleanup_follow_up_queue(
+            queue,
+            reference_date=latest_action_date(actions) or latest_action_date(merged),
+        )
     save_follow_up_queue(queue, path)
     return queue
+
+
+def cleanup_follow_up_backlog(path=DEFAULT_FOLLOW_UP_QUEUE_PATH, reference_date=None, max_carryover_days=DEFAULT_CARRYOVER_MAX_DAYS):
+    queue = load_follow_up_queue(path)
+    summary = cleanup_follow_up_queue(
+        queue,
+        reference_date=reference_date or latest_action_date(queue.get("actions", [])),
+        max_carryover_days=max_carryover_days,
+    )
+    save_follow_up_queue(queue, path)
+    return summary
+
+
+def cleanup_follow_up_queue(queue, reference_date=None, max_carryover_days=DEFAULT_CARRYOVER_MAX_DAYS, now=None):
+    reference_day = parse_action_day(reference_date)
+    skipped_duplicate = 0
+    skipped_stale = 0
+    timestamp = now or datetime.now(timezone.utc).isoformat()
+
+    pending_by_key = {}
+    for action in queue.get("actions", []):
+        key = follow_up_backlog_key(action)
+        if not key:
+            continue
+        current = pending_by_key.get(key)
+        if current is None or backlog_keep_sort_key(action) > backlog_keep_sort_key(current):
+            pending_by_key[key] = action
+
+    keep_ids = {action.get("action_id") for action in pending_by_key.values()}
+    for action in queue.get("actions", []):
+        if not follow_up_backlog_key(action):
+            continue
+        if action.get("action_id") in keep_ids:
+            continue
+        skip_pending_action(
+            action,
+            timestamp=timestamp,
+            note="Skipped as a duplicate manual follow-up target; kept the newest pending action for this target.",
+        )
+        skipped_duplicate += 1
+
+    if reference_day:
+        cutoff = reference_day - timedelta(days=max(0, int(max_carryover_days)))
+        for action in queue.get("actions", []):
+            if not follow_up_backlog_key(action):
+                continue
+            action_day = parse_action_day(action.get("date"))
+            if action_day and action_day < cutoff:
+                skip_pending_action(
+                    action,
+                    timestamp=timestamp,
+                    note=f"Skipped as stale manual follow-up carryover older than {max_carryover_days} day(s).",
+                )
+                skipped_stale += 1
+
+    return {
+        "skipped_duplicate_count": skipped_duplicate,
+        "skipped_stale_count": skipped_stale,
+        "reference_date": reference_day.isoformat() if reference_day else "",
+        "max_carryover_days": max_carryover_days,
+    }
+
+
+def follow_up_backlog_key(action):
+    if action.get("status") not in PENDING_ACTION_STATUSES:
+        return None
+    if is_api_executable_action(action):
+        return None
+    platform = normalize_backlog_key_part(action.get("platform"))
+    kind = normalize_backlog_key_part(action.get("kind"))
+    target = first_truthy(
+        [
+            action.get("target_url"),
+            action.get("target_search_url"),
+            action.get("target_uri"),
+            action.get("target_author_handle"),
+            action.get("target_author_display_name"),
+            action.get("target_type"),
+            action.get("target_search"),
+            action.get("target_query"),
+            action.get("title"),
+        ]
+    )
+    target = normalize_backlog_key_part(target)
+    if not platform or not kind or not target:
+        return None
+    return (platform, kind, target)
+
+
+def backlog_keep_sort_key(action):
+    return (
+        action.get("date") or "",
+        1 if action.get("status") == "approved" else 0,
+        action.get("updated_at") or action.get("created_at") or "",
+        action.get("action_id") or "",
+    )
+
+
+def skip_pending_action(action, timestamp, note):
+    action["status"] = "skipped"
+    action["updated_at"] = timestamp
+    action["skipped_at"] = timestamp
+    action.setdefault("notes", []).append({"at": timestamp, "text": note})
+
+
+def latest_action_date(actions):
+    dates = [str(action.get("date") or "") for action in actions if action.get("date")]
+    return max(dates) if dates else None
+
+
+def parse_action_day(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except ValueError:
+        return None
+
+
+def normalize_backlog_key_part(value):
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
 
 
 def list_follow_up_actions(path=DEFAULT_FOLLOW_UP_QUEUE_PATH, run_date=None, status=None):

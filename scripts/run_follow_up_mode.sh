@@ -13,7 +13,12 @@ fi
 
 mkdir -p logs output
 
-PLAN_DATE="${PLAN_DATE:-$(date +%F)}"
+if [[ -z "${PLAN_DATE:-}" ]]; then
+  PLAN_DATE="$(date +%F)"
+  PLAN_DATE_DEFAULTED=1
+else
+  PLAN_DATE_DEFAULTED=0
+fi
 DURATION_SECONDS="${FOLLOW_UP_MODE_SECONDS:-3600}"
 INTERVAL_SECONDS="${FOLLOW_UP_MODE_INTERVAL_SECONDS:-600}"
 TARGET_CANDIDATES="${FOLLOW_UP_TARGET_CANDIDATES:-3}"
@@ -26,6 +31,7 @@ PUBLISH_APPROVED="${FOLLOW_UP_PUBLISH_APPROVED:-1}"
 EXECUTE_LIMIT="${FOLLOW_UP_EXECUTE_LIMIT:-3}"
 LEGACY_LOOP="${FOLLOW_UP_LEGACY_LOOP:-0}"
 AUTOMATION_ONLY="${FOLLOW_UP_AUTOMATION_ONLY:-0}"
+USE_LATEST_PLAN="${FOLLOW_UP_USE_LATEST_PLAN:-1}"
 
 if [[ -z "${PYTHON_BIN:-}" ]]; then
   if [[ -x "$REPO_ROOT/.venv/bin/python3" ]]; then
@@ -58,6 +64,9 @@ if [[ "$LEGACY_LOOP" != "1" ]]; then
     --inbox-limit "$INBOX_LIMIT" \
     --inbox-lookback-hours "$INBOX_LOOKBACK_HOURS")
 
+  if [[ "$USE_LATEST_PLAN" == "1" && "$PLAN_DATE_DEFAULTED" == "1" ]]; then
+    session_args+=(--latest-plan)
+  fi
   if [[ "$AUTOMATION_ONLY" == "1" ]]; then
     session_args+=(--automation-only)
   fi
@@ -87,6 +96,9 @@ while (( $(date +%s) < end_epoch )); do
     --date "$PLAN_DATE" \
     --target-search-limit "$TARGET_SEARCH_LIMIT" \
     --target-candidates "$TARGET_CANDIDATES")
+  if [[ "$USE_LATEST_PLAN" == "1" && "$PLAN_DATE_DEFAULTED" == "1" ]]; then
+    refresh_args+=(--latest-plan)
+  fi
   if [[ "$AUTOMATION_ONLY" == "1" ]]; then
     refresh_args+=(--automation-only)
   fi

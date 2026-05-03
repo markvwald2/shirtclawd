@@ -9,7 +9,10 @@ from bot.follow_up import (
     approve_follow_up_action,
     build_follow_up_actions,
     build_follow_up_brief,
+    cleanup_follow_up_backlog,
+    daily_plan_date_for_path,
     discover_follow_up_targets,
+    find_latest_daily_plan,
     list_follow_up_actions,
     load_daily_plan,
     load_posts_for_plan,
@@ -65,10 +68,13 @@ def main():
     parser.add_argument("--external-id", default=None, help="Platform ID or URL after an action is sent.")
     parser.add_argument("--note", default=None)
     parser.add_argument("--execute-approved", action="store_true")
+    parser.add_argument("--cleanup-backlog", action="store_true", help="Skip stale or duplicate manual/unsupported pending actions.")
+    parser.add_argument("--carryover-max-days", type=int, default=1, help="Manual carryover days to keep during --cleanup-backlog.")
     parser.add_argument("--publish", action="store_true", help="Actually execute approved actions. Without this, execution is a dry run.")
     parser.add_argument("--platform", default=None, help="Restrict execution to one platform, e.g. bluesky.")
     parser.add_argument("--action-id", default=None, help="Restrict execution to one action ID.")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--latest-plan", action="store_true", help="If the requested daily plan is missing, use the latest workflow plan in the output directory.")
     parser.add_argument("--skip-target-discovery", action="store_true", help="Do not search Bluesky for candidate reply targets.")
     parser.add_argument("--target-candidates", type=int, default=3, help="Candidate Bluesky targets to attach per planned Bluesky post.")
     parser.add_argument("--target-search-limit", type=int, default=20, help="Bluesky search results to inspect per discovery query.")
@@ -77,9 +83,8 @@ def main():
     args = parser.parse_args()
 
     requested_date = args.date or datetime.now().date().isoformat()
-    plan_path = Path(args.plan) if args.plan else Path(args.output_dir) / f"daily_plan_{requested_date}.json"
-
     if args.daily_session:
+        requested_date, plan_path = resolve_plan_request(args, requested_date)
         result = run_follow_up_session(
             run_date=requested_date,
             plan_path=plan_path,
@@ -112,6 +117,18 @@ def main():
             run_date=requested_date,
         )
         print_execution_results(results)
+        return
+    if args.cleanup_backlog:
+        summary = cleanup_follow_up_backlog(
+            path=args.queue,
+            reference_date=requested_date,
+            max_carryover_days=args.carryover_max_days,
+        )
+        print(
+            "Cleaned follow-up backlog: "
+            f"{summary.get('skipped_duplicate_count', 0)} duplicate(s), "
+            f"{summary.get('skipped_stale_count', 0)} stale action(s) skipped."
+        )
         return
     if args.list_actions:
         print_actions(list_follow_up_actions(args.queue, run_date=args.date, status=args.status))
@@ -153,8 +170,9 @@ def main():
         print_action_update("Skipped", action)
         return
 
+    requested_date, plan_path = resolve_plan_request(args, requested_date)
     plan = load_daily_plan(plan_path)
-    run_date = args.date or plan.get("plan_date") or requested_date
+    run_date = requested_date
     post_refs = load_posts_for_plan(plan, args.output_dir)
     platforms = [entry.get("platform") for entry in plan.get("planned_posts", []) if entry.get("platform")]
     publish_records = load_publish_records(run_date, args.log_dir, platforms=platforms)
@@ -190,6 +208,24 @@ def main():
     print(f"Wrote follow-up brief -> {destination}")
     print(f"Queued {len(actions)} follow-up actions -> {args.queue}")
     print_discovery_summary(target_discovery)
+
+
+def resolve_plan_request(args, requested_date):
+    plan_path = Path(args.plan) if args.plan else Path(args.output_dir) / f"daily_plan_{requested_date}.json"
+    if args.latest_plan and not args.plan and not plan_path.exists():
+        latest_plan_path = find_latest_daily_plan(args.output_dir, by_mtime=True)
+        if latest_plan_path:
+            latest_plan_date = daily_plan_date_for_path(latest_plan_path) or requested_date
+            print(
+                f"No daily plan found for {requested_date}; "
+                f"using latest workflow plan {latest_plan_path} ({latest_plan_date})."
+            )
+            return latest_plan_date, latest_plan_path
+    if not args.date:
+        plan_date = daily_plan_date_for_path(plan_path)
+        if plan_date:
+            return plan_date, plan_path
+    return requested_date, plan_path
 
 
 def print_actions(actions):
