@@ -22,6 +22,7 @@ DEFAULT_PUBLISH_LOG_PATH = Path("data/bluesky_publish_log.jsonl")
 DEFAULT_BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE", "replace-me.bsky.social")
 MAX_POST_LENGTH = 300
 MAX_BLOB_BYTES = 950_000
+MAX_POST_IMAGES = 4
 BLUESKY_RESIZE_WIDTHS = (1600, 1200, 900, 700, 500)
 
 
@@ -64,13 +65,19 @@ def select_post(posts, index=None, shirt_id=None):
 
 def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, handle=None):
     text = build_bluesky_status(post)
+    post_images = resolve_post_images(post)
+    image_urls = [image["image_url"] for image in post_images]
+    is_multi_image = len(image_urls) > 1
     resolved_handle = handle or (credentials or {}).get("handle") or DEFAULT_BLUESKY_HANDLE
     result = {
         "mode": "dry_run" if dry_run else "publish",
         "shirt_id": post.get("shirt_id"),
+        "shirt_ids": post.get("shirt_ids") or [],
         "title": post.get("title"),
         "text": text,
-        "image_url": post.get("image_url"),
+        "image_url": image_urls[0] if image_urls else post.get("image_url"),
+        "image_urls": image_urls,
+        "is_multi_image": is_multi_image,
         "platform": "bluesky",
         "handle": resolved_handle,
     }
@@ -81,37 +88,48 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
                 "logged_at": utc_now_iso(),
                 "status": "dry_run",
                 "shirt_id": post.get("shirt_id"),
+                "shirt_ids": post.get("shirt_ids") or [],
                 "title": post.get("title"),
                 "text": text,
+                "image_urls": image_urls,
+                "is_multi_image": is_multi_image,
                 "handle": resolved_handle,
             },
             log_path,
         )
         return result
 
+    if len(post_images) > MAX_POST_IMAGES:
+        raise BlueskyPublisherError(f"Bluesky supports at most {MAX_POST_IMAGES} images per post; got {len(post_images)}.")
+
     resolved_credentials = credentials or load_credentials()
     session = create_session(resolved_credentials)
-    blob = None
+    image_embeds = []
     external_embed = None
-    if post.get("image_url"):
-        image_bytes, mime_type = download_image(post["image_url"])
+    for image in post_images:
+        image_bytes, mime_type = download_image(image["image_url"])
         image_bytes, mime_type = optimize_image_for_bluesky(image_bytes, mime_type)
         blob = upload_blob(image_bytes, mime_type, session["accessJwt"])
-    if post.get("url"):
-        external_embed = build_external_embed(post, blob=blob)
+        image_embeds.append({"alt": image["alt"], "image": blob})
+    if post.get("url") and len(image_embeds) <= 1:
+        thumb = image_embeds[0]["image"] if image_embeds else None
+        external_embed = build_external_embed(post, blob=thumb)
     response = create_post(
         text=text,
         did=session["did"],
         access_jwt=session["accessJwt"],
-        blob=blob if not external_embed else None,
+        image_embeds=image_embeds if not external_embed else None,
         external_embed=external_embed,
     )
     event = {
         "logged_at": utc_now_iso(),
         "status": "published",
         "shirt_id": post.get("shirt_id"),
+        "shirt_ids": post.get("shirt_ids") or [],
         "title": post.get("title"),
         "text": text,
+        "image_urls": image_urls,
+        "is_multi_image": is_multi_image,
         "handle": resolved_handle,
         "uri": response.get("uri"),
         "cid": response.get("cid"),
@@ -132,6 +150,40 @@ def build_bluesky_status(post, max_length=MAX_POST_LENGTH):
     if len(compact) <= max_length:
         return compact
     return trim_text(caption, max_length)
+
+
+def resolve_post_images(post):
+    values = []
+    carousel_items = post.get("carousel_items")
+    if isinstance(carousel_items, list):
+        for item in carousel_items:
+            if isinstance(item, dict):
+                values.append(
+                    {
+                        "image_url": item.get("image_url"),
+                        "alt": item.get("alt_text") or item.get("title") or post.get("alt_text") or "",
+                    }
+                )
+    image_urls = post.get("image_urls")
+    if isinstance(image_urls, list):
+        values.extend({"image_url": image_url, "alt": post.get("alt_text") or ""} for image_url in image_urls)
+    if post.get("image_url"):
+        values.append({"image_url": post.get("image_url"), "alt": post.get("alt_text") or ""})
+
+    resolved = []
+    seen = set()
+    for item in values:
+        image_url = str(item.get("image_url") or "").strip()
+        if not image_url or image_url in seen:
+            continue
+        seen.add(image_url)
+        resolved.append(
+            {
+                "image_url": image_url,
+                "alt": str(item.get("alt") or "ShirtClawd product image").strip(),
+            }
+        )
+    return resolved
 
 
 def trim_text(text, limit):
@@ -276,7 +328,7 @@ def parse_at_uri(uri):
     }
 
 
-def create_post(text, did, access_jwt, blob=None, external_embed=None, reply=None):
+def create_post(text, did, access_jwt, blob=None, image_embeds=None, external_embed=None, reply=None):
     record = {
         "$type": "app.bsky.feed.post",
         "text": text,
@@ -286,6 +338,11 @@ def create_post(text, did, access_jwt, blob=None, external_embed=None, reply=Non
         record["reply"] = reply
     if external_embed:
         record["embed"] = external_embed
+    elif image_embeds:
+        record["embed"] = {
+            "$type": "app.bsky.embed.images",
+            "images": image_embeds,
+        }
     elif blob:
         record["embed"] = {
             "$type": "app.bsky.embed.images",

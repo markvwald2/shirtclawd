@@ -166,7 +166,7 @@ def build_user_prompt(shirt, platform, recent_posts=None, post_context=None):
     platform_url_guidance = {
         "instagram": (
             "Do not include a raw URL in the caption. Avoid stock CTA wording. "
-            "If a call to action helps, vary the phrasing and do not repeat 'link in bio'."
+            "Do not write 'link in bio'; the Instagram formatter appends that line after the caption."
         ),
         "bluesky": "Do not rely on a pasted raw URL in the caption. Write clean copy; the publisher will attach the destination separately.",
     }
@@ -234,18 +234,34 @@ def normalize_post_context(post_context):
         "active_offer",
         "discount_percent",
         "offer_scope",
+        "offer_starts_on",
         "offer_ends_on",
         "secondary_offer",
+        "post_kind",
+        "collection_title",
+        "collection_size",
     )
-    return {
+    normalized = {
         key: str(post_context.get(key, "")).strip()
         for key in keys
         if str(post_context.get(key, "")).strip()
     }
+    collection_items = post_context.get("collection_items")
+    if isinstance(collection_items, list):
+        normalized["collection_items"] = [
+            {
+                "shirt_id": str(item.get("shirt_id", "")).strip(),
+                "title": str(item.get("title", "")).strip(),
+            }
+            for item in collection_items
+            if isinstance(item, dict) and str(item.get("title", "")).strip()
+        ]
+    return normalized
 
 
 def build_content_goal_guidance(post_context):
     content_goal = post_context.get("content_goal", "")
+    content_format = post_context.get("content_format", "")
     cta_goal = post_context.get("cta_goal", "")
     campaign_guidance = post_context.get("campaign_prompt_guidance", "")
     strategy_note = post_context.get("campaign_strategy_note", "")
@@ -273,6 +289,12 @@ def build_content_goal_guidance(post_context):
     }.get(cta_goal, "")
 
     parts = [goal_guidance]
+    if content_format == "series_set":
+        parts.append(
+            "This is a multi-image set/carousel post. Write about the whole line of shirts, "
+            "not just the first shirt. Mention the lineup naturally and make the caption work "
+            "as people swipe across the images."
+        )
     if cta_guidance:
         parts.append(cta_guidance)
     if campaign_guidance:
@@ -290,19 +312,28 @@ def build_offer_guidance(post_context):
     if not active_offer:
         return ""
 
+    starts_on = post_context.get("offer_starts_on", "")
     ends_on = post_context.get("offer_ends_on", "")
     secondary_offer = post_context.get("secondary_offer", "")
     content_goal = post_context.get("content_goal", "")
     cta_goal = post_context.get("cta_goal", "")
-    expiration = f" through {ends_on}" if ends_on else ""
+    if starts_on and ends_on:
+        offer_window = f" from {starts_on} through {ends_on}"
+    elif starts_on:
+        offer_window = f" starting {starts_on}"
+    elif ends_on:
+        offer_window = f" through {ends_on}"
+    else:
+        offer_window = ""
     secondary = f" A secondary storewide offer is {secondary_offer}." if secondary_offer else ""
     if content_goal == "direct_offer" or cta_goal == "buy":
         return (
-            f"The current offer is {active_offer}{expiration}. Mention it clearly if this post asks "
-            f"for the sale, while keeping the voice dry and non-desperate.{secondary}"
+            f"The sale offer is {active_offer}{offer_window}. Mention it clearly if this post asks "
+            f"for the sale, while keeping the voice dry and non-desperate. Do not imply the sale "
+            f"is live outside that window.{secondary}"
         )
     return (
-        f"The current offer is {active_offer}{expiration}, but do not force it into this post unless "
+        f"The sale offer is {active_offer}{offer_window}, but do not force it into this post unless "
         f"it supports the assigned content goal without turning the post into an ad.{secondary}"
     )
 
@@ -371,7 +402,7 @@ def build_repetition_guidance(platform, recent_posts):
         "Avoid repeating CTA phrases or hashtag sets from these recent posts."
     ]
     if platform == "instagram":
-        message.append("Do not use 'link in bio' more than once, and prefer a fresh CTA when possible.")
+        message.append("Do not write 'link in bio'; the Instagram formatter appends it consistently.")
     if recent_ctas:
         message.append(f"Recent caption examples to avoid echoing: {recent_ctas[:3]}.")
     if recent_hashtag_combos:

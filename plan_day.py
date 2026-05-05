@@ -27,6 +27,13 @@ def main():
     parser.add_argument("--expected-input-tokens", type=int, default=DEFAULT_ESTIMATED_INPUT_TOKENS)
     parser.add_argument("--expected-output-tokens", type=int, default=DEFAULT_ESTIMATED_OUTPUT_TOKENS)
     parser.add_argument("--campaign", help="Optional campaign mode, e.g. coloradans_against.")
+    parser.add_argument(
+        "--include-campaign-set-post",
+        action="store_true",
+        help="Add one campaign collection/set post, e.g. an Instagram carousel for a shirt line.",
+    )
+    parser.add_argument("--campaign-set-platform", dest="campaign_set_platforms", action="append")
+    parser.add_argument("--campaign-set-size", type=int, default=4)
     parser.add_argument("--approval-required", dest="approval_required", action="store_true")
     parser.add_argument("--no-approval-required", dest="approval_required", action="store_false")
     parser.set_defaults(approval_required=True)
@@ -49,6 +56,9 @@ def main():
         expected_input_tokens=args.expected_input_tokens,
         expected_output_tokens=args.expected_output_tokens,
         campaign=args.campaign,
+        include_campaign_set_post=args.include_campaign_set_post,
+        campaign_set_platforms=args.campaign_set_platforms,
+        campaign_set_size=args.campaign_set_size,
     )
     destination = write_daily_plan(plan, args.output_dir)
 

@@ -235,6 +235,8 @@ Live publish:
 python publish_to_facebook.py --file output/posts_2026-03-14_facebook.json --index 0 --publish
 ```
 
+Use `--all --publish` to publish every generated Facebook post in a file. Posts with multiple `image_urls` or `carousel_items` publish as multi-photo stories.
+
 Batch publish approved X posts:
 
 ```bash
@@ -255,6 +257,8 @@ Live publish:
 python publish_to_bluesky.py --file output/posts_2026-03-10_bluesky.json --index 0 --publish
 ```
 
+Use `--all --publish --force` to publish every generated Bluesky post in a file. Posts with multiple `image_urls` or `carousel_items` publish with up to four image embeds.
+
 By default, live publishing requires a prior approval entry unless `--force` is used.
 
 ### Publish to Threads
@@ -271,7 +275,7 @@ Live publish:
 python publish_to_threads.py --file output/posts_2026-03-10_threads.json --index 0 --publish
 ```
 
-Current support publishes image posts when `image_url` is present and falls back to text-only otherwise.
+Use `--all --publish` to publish every generated Threads post in a file. Posts with multiple `image_urls` or `carousel_items` publish as Threads carousels; single-image posts still publish as image posts and posts without an image fall back to text-only.
 
 ### Publish to Instagram
 
@@ -287,7 +291,13 @@ Live publish:
 python publish_to_instagram.py --file output/posts_2026-03-22_instagram.json --index 0 --publish
 ```
 
-The CLI auto-loads `.env` if it exists. Current support is limited to single-image feed posts.
+Publish every Instagram post in a generated file, useful when the file contains both an individual shirt post and a carousel/set post:
+
+```bash
+python publish_to_instagram.py --file output/posts_2026-03-22_instagram.json --all --publish
+```
+
+The CLI auto-loads `.env` if it exists. Posts with multiple `image_urls` or `carousel_items` publish as Instagram carousels; single-image posts continue through the normal feed-post path.
 
 ### Run a Daily Follow-Up Session
 
@@ -426,7 +436,7 @@ ClawdBot follows a simple pipeline:
 
 Current campaign:
 
-- `coloradans_against`: selects the `Coloradans Against` shirts, adds campaign/series/audience metadata, includes the current 25% off Coloradans Against / 20% off all other shirts offer through April 29, 2026, and rotates content goals across conversation, shareable local argument, series spotlight, and direct offer posts.
+- `coloradans_against`: selects the `Coloradans Against` shirts, adds campaign/series/audience metadata, includes the 20% off all Spreadshirt orders sale from May 15 through May 19, 2026, and rotates content goals across conversation, shareable local argument, series spotlight, and direct offer posts. Add `--include-campaign-set-post` to plan one extra set post per selected platform for the line; `scripts/run_daily_workflow.sh` enables that behavior when `CAMPAIGN_SET_POST=1`. Use `--campaign-set-platform instagram` or `CAMPAIGN_SET_PLATFORM=instagram` to narrow the set post to one platform.
 
 ### Model Pricing
 

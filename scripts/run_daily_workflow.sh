@@ -129,6 +129,12 @@ plan_args=(plan_day.py --date "$PLAN_DATE" --max-estimated-cost 1.0 --campaign "
 for platform in "${PLATFORMS[@]}"; do
   plan_args+=(--platform "$platform")
 done
+if [[ "${CAMPAIGN_SET_POST:-0}" == "1" ]]; then
+  plan_args+=(--include-campaign-set-post --campaign-set-size "${CAMPAIGN_SET_SIZE:-4}")
+  if [[ -n "${CAMPAIGN_SET_PLATFORM:-}" ]]; then
+    plan_args+=(--campaign-set-platform "$CAMPAIGN_SET_PLATFORM")
+  fi
+fi
 
 "$PYTHON_BIN" "${plan_args[@]}"
 "$PYTHON_BIN" generate_posts.py --plan "output/daily_plan_${PLAN_DATE}.json"
@@ -165,16 +171,32 @@ for platform in "${PLATFORMS[@]}"; do
   posts_file="$(latest_posts_file "$platform")"
   case "$platform" in
     bluesky)
-      "$PYTHON_BIN" publish_to_bluesky.py --file "$posts_file" --index 0 --publish --force
+      if [[ "${CAMPAIGN_SET_POST:-0}" == "1" ]]; then
+        "$PYTHON_BIN" publish_to_bluesky.py --file "$posts_file" --all --publish --force
+      else
+        "$PYTHON_BIN" publish_to_bluesky.py --file "$posts_file" --index 0 --publish --force
+      fi
       ;;
     instagram)
-      "$PYTHON_BIN" publish_to_instagram.py --file "$posts_file" --index 0 --publish
+      if [[ "${CAMPAIGN_SET_POST:-0}" == "1" ]]; then
+        "$PYTHON_BIN" publish_to_instagram.py --file "$posts_file" --all --publish
+      else
+        "$PYTHON_BIN" publish_to_instagram.py --file "$posts_file" --index 0 --publish
+      fi
       ;;
     facebook)
-      "$PYTHON_BIN" publish_to_facebook.py --file "$posts_file" --index 0 --publish
+      if [[ "${CAMPAIGN_SET_POST:-0}" == "1" ]]; then
+        "$PYTHON_BIN" publish_to_facebook.py --file "$posts_file" --all --publish
+      else
+        "$PYTHON_BIN" publish_to_facebook.py --file "$posts_file" --index 0 --publish
+      fi
       ;;
     threads)
-      "$PYTHON_BIN" publish_to_threads.py --file "$posts_file" --index 0 --publish
+      if [[ "${CAMPAIGN_SET_POST:-0}" == "1" ]]; then
+        "$PYTHON_BIN" publish_to_threads.py --file "$posts_file" --all --publish
+      else
+        "$PYTHON_BIN" publish_to_threads.py --file "$posts_file" --index 0 --publish
+      fi
       ;;
     *)
       echo "No auto-publish command configured for platform=$platform"

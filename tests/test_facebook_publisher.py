@@ -7,10 +7,13 @@ from unittest.mock import patch
 from bot.facebook_publisher import (
     build_facebook_link,
     build_facebook_message,
+    create_multi_photo_post,
     create_object_comment,
+    create_unpublished_photo,
     load_posts,
     publish_comment,
     publish_post,
+    resolve_post_image_urls,
     select_post,
 )
 
@@ -100,6 +103,58 @@ class FacebookPublisherTests(unittest.TestCase):
         self.assertEqual(result["facebook_post_id"], "post123")
         self.assertEqual(result["link"], "https://example.com/product")
         self.assertIn("/page123/feed", api_mock.call_args.args[0])
+
+    def test_resolve_post_image_urls_reads_carousel_items(self):
+        urls = resolve_post_image_urls(
+            {
+                "image_url": "https://example.com/one.jpg",
+                "carousel_items": [
+                    {"image_url": "https://example.com/one.jpg"},
+                    {"image_url": "https://example.com/two.jpg"},
+                ],
+            }
+        )
+
+        self.assertEqual(urls, ["https://example.com/one.jpg", "https://example.com/two.jpg"])
+
+    def test_create_unpublished_photo_uses_photos_endpoint(self):
+        with patch("bot.facebook_publisher.api_request", return_value={"id": "photo123"}) as api_mock:
+            photo_id = create_unpublished_photo("page123", "token", "https://example.com/image.jpg")
+
+        self.assertEqual(photo_id, "photo123")
+        self.assertIn("/page123/photos", api_mock.call_args.args[0])
+        self.assertEqual(api_mock.call_args.kwargs["payload"]["published"], "false")
+
+    def test_create_multi_photo_post_attaches_uploaded_photos(self):
+        with patch("bot.facebook_publisher.api_request", return_value={"id": "post123"}) as api_mock:
+            response = create_multi_photo_post("page123", "token", "Message", ["photo1", "photo2"])
+
+        self.assertEqual(response["id"], "post123")
+        payload = api_mock.call_args.kwargs["payload"]
+        self.assertEqual(payload["attached_media[0]"], '{"media_fbid": "photo1"}')
+        self.assertEqual(payload["attached_media[1]"], '{"media_fbid": "photo2"}')
+
+    def test_publish_post_uses_multi_photo_flow_for_multiple_images(self):
+        post = {
+            "shirt_id": "coloradans_against_set",
+            "shirt_ids": ["1", "2"],
+            "title": "Coloradans Against Shirt Line",
+            "caption": "Pick your complaint.",
+            "image_urls": ["https://example.com/one.jpg", "https://example.com/two.jpg"],
+            "url": "https://example.com/product",
+        }
+        with patch("bot.facebook_publisher.api_request", side_effect=[{"id": "photo1"}, {"id": "photo2"}, {"id": "post123"}]) as api_mock:
+            result = publish_post(
+                post,
+                dry_run=False,
+                credentials={"access_token": "token", "page_id": "page123"},
+                log_path=TEST_LOG_PATH,
+            )
+
+        self.assertTrue(result["is_multi_image"])
+        self.assertEqual(result["link"], "")
+        self.assertEqual(result["facebook_photo_ids"], ["photo1", "photo2"])
+        self.assertIn("/page123/feed", api_mock.call_args_list[-1].args[0])
 
     def test_load_posts_reads_array(self):
         with tempfile.TemporaryDirectory() as tmpdir:

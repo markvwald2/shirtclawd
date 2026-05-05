@@ -102,12 +102,13 @@ def apply_platform_format(platform, headline, caption, hashtags, content_formats
     platform_rules = resolve_platform_rules(content_formats, platform)
     headline_prefix = platform_rules.get("headline_prefix", "")
     cta_suffix = choose_cta_suffix(platform_rules.get("cta_suffix", ""), rng=rng)
+    cta_separator = str(platform_rules.get("cta_separator", " "))
 
     formatted_caption = sanitize_caption_for_platform(caption, platform).strip()
     formatted_caption, inline_hashtags = strip_hashtags_from_caption(formatted_caption)
     trimmed_hashtags = normalize_hashtags(list(hashtags or []) + inline_hashtags)[: platform_rules["max_hashtags"]]
     if cta_suffix and not caption_already_contains_cta(formatted_caption, cta_suffix):
-        formatted_caption = f"{formatted_caption} {cta_suffix}"
+        formatted_caption = append_caption_suffix(formatted_caption, cta_suffix, separator=cta_separator)
     if platform_rules.get("append_hashtags_to_caption") and trimmed_hashtags:
         formatted_caption = f"{formatted_caption}\n\n{' '.join(trimmed_hashtags)}"
 
@@ -145,6 +146,16 @@ def caption_already_contains_cta(caption, cta_suffix):
     if "link in bio" in caption_words and "link in bio" in cta_words:
         return True
     return cta_words in caption_words
+
+
+def append_caption_suffix(caption, suffix, separator=" "):
+    base = str(caption or "").strip()
+    text = str(suffix or "").strip()
+    if not text:
+        return base
+    if not base:
+        return text
+    return f"{base}{separator}{text}".strip()
 
 
 def normalize_for_cta_match(text):

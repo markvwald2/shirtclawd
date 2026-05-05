@@ -9,11 +9,23 @@ CAMPAIGNS = {
             "Entertain first; sell only when the content goal calls for it."
         ),
         "active_offer": {
-            "description": "25% off Coloradans Against shirts",
-            "discount_percent": 25,
-            "scope": "Coloradans Against shirts",
-            "ends_on": "2026-04-29",
-            "secondary_description": "20% off all other shirts",
+            "description": "20% off all Spreadshirt orders",
+            "discount_percent": 20,
+            "scope": "all Spreadshirt orders",
+            "starts_on": "2026-05-15",
+            "ends_on": "2026-05-19",
+        },
+        "set_post": {
+            "title": "Coloradans Against Shirt Line",
+            "theme": "Coloradans Against",
+            "content_goal": "product_connected",
+            "content_format": "series_set",
+            "cta_goal": "buy",
+            "prompt_guidance": (
+                "This is a multi-image carousel/set post. Write about the Coloradans Against "
+                "line as a whole, not one shirt. Invite people to swipe through the lineup and "
+                "keep the Colorado-local argument energy."
+            ),
         },
         "content_sequence": [
             {
@@ -92,13 +104,41 @@ def apply_campaign_metadata(plan_entry, campaign_definition, slot_index):
         }
     )
     if offer:
-        enriched.update(
-            {
-                "active_offer": offer.get("description", ""),
-                "discount_percent": offer.get("discount_percent"),
-                "offer_scope": offer.get("scope", ""),
-                "offer_ends_on": offer.get("ends_on", ""),
-                "secondary_offer": offer.get("secondary_description", ""),
-            }
-        )
+        enriched.update(build_offer_metadata(offer))
     return enriched
+
+
+def apply_campaign_set_metadata(plan_entry, campaign_definition):
+    if not campaign_definition:
+        return plan_entry
+
+    set_post = campaign_definition.get("set_post") or {}
+    offer = campaign_definition.get("active_offer") or {}
+    enriched = dict(plan_entry)
+    enriched.update(
+        {
+            "campaign": campaign_definition["campaign"],
+            "series": campaign_definition["series"],
+            "audience_lane": campaign_definition["audience_lane"],
+            "content_goal": set_post.get("content_goal", "product_connected"),
+            "content_format": set_post.get("content_format", "series_set"),
+            "cta_goal": set_post.get("cta_goal", "buy"),
+            "campaign_prompt_guidance": set_post.get("prompt_guidance", ""),
+            "campaign_strategy_note": campaign_definition.get("strategy_note", ""),
+            "collection_title": set_post.get("title", campaign_definition["series"]),
+        }
+    )
+    if offer:
+        enriched.update(build_offer_metadata(offer))
+    return enriched
+
+
+def build_offer_metadata(offer):
+    return {
+        "active_offer": offer.get("description", ""),
+        "discount_percent": offer.get("discount_percent"),
+        "offer_scope": offer.get("scope", ""),
+        "offer_starts_on": offer.get("starts_on", ""),
+        "offer_ends_on": offer.get("ends_on", ""),
+        "secondary_offer": offer.get("secondary_description", ""),
+    }

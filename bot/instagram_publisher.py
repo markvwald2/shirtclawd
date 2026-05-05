@@ -15,6 +15,8 @@ DEFAULT_PUBLISH_LOG_PATH = Path("data/instagram_publish_log.jsonl")
 DEFAULT_INSTAGRAM_ACCOUNT_ID = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID", "replace_me")
 MAX_CAPTION_LENGTH = 2200
 PUBLISH_LIMIT_ERROR_SUBCODE = 2207042
+LINK_IN_BIO_CTA = "Link in bio."
+MAX_CAROUSEL_ITEMS = 10
 
 
 class InstagramPublisherError(RuntimeError):
@@ -56,13 +58,18 @@ def select_post(posts, index=None, shirt_id=None):
 
 def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, account_id=None):
     caption = build_instagram_caption(post)
+    image_urls = resolve_post_image_urls(post)
     resolved_account_id = account_id or (credentials or {}).get("account_id") or DEFAULT_INSTAGRAM_ACCOUNT_ID
+    is_carousel = len(image_urls) > 1
     result = {
         "mode": "dry_run" if dry_run else "publish",
         "shirt_id": post.get("shirt_id"),
+        "shirt_ids": post.get("shirt_ids") or [],
         "title": post.get("title"),
         "caption": caption,
-        "image_url": post.get("image_url"),
+        "image_url": image_urls[0] if image_urls else post.get("image_url"),
+        "image_urls": image_urls,
+        "is_carousel": is_carousel,
         "platform": "instagram",
         "account_id": resolved_account_id,
     }
@@ -73,16 +80,23 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
                 "logged_at": utc_now_iso(),
                 "status": "dry_run",
                 "shirt_id": post.get("shirt_id"),
+                "shirt_ids": post.get("shirt_ids") or [],
                 "title": post.get("title"),
                 "caption": caption,
+                "image_urls": image_urls,
+                "is_carousel": is_carousel,
                 "account_id": resolved_account_id,
             },
             log_path,
         )
         return result
 
-    if not post.get("image_url"):
+    if not image_urls:
         raise InstagramPublisherError("Instagram publishing requires image_url for feed posts.")
+    if is_carousel and len(image_urls) > MAX_CAROUSEL_ITEMS:
+        raise InstagramPublisherError(
+            f"Instagram carousel publishing supports at most {MAX_CAROUSEL_ITEMS} images; got {len(image_urls)}."
+        )
 
     resolved_credentials = dict(credentials or load_credentials())
     if account_id:
@@ -93,16 +107,41 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
             f"Instagram content publishing limit reached: "
             f"{limit_state['quota_usage']}/{limit_state['quota_total']} used."
         )
-    creation_id = create_media_container(
-        account_id=resolved_credentials["account_id"],
-        access_token=resolved_credentials["access_token"],
-        image_url=post["image_url"],
-        caption=caption,
-    )
-    wait_for_container(
-        creation_id=creation_id,
-        access_token=resolved_credentials["access_token"],
-    )
+    if is_carousel:
+        child_creation_ids = []
+        for image_url in image_urls:
+            child_creation_id = create_carousel_item_container(
+                account_id=resolved_credentials["account_id"],
+                access_token=resolved_credentials["access_token"],
+                image_url=image_url,
+            )
+            wait_for_container(
+                creation_id=child_creation_id,
+                access_token=resolved_credentials["access_token"],
+            )
+            child_creation_ids.append(child_creation_id)
+        creation_id = create_carousel_container(
+            account_id=resolved_credentials["account_id"],
+            access_token=resolved_credentials["access_token"],
+            child_creation_ids=child_creation_ids,
+            caption=caption,
+        )
+        wait_for_container(
+            creation_id=creation_id,
+            access_token=resolved_credentials["access_token"],
+        )
+    else:
+        child_creation_ids = []
+        creation_id = create_media_container(
+            account_id=resolved_credentials["account_id"],
+            access_token=resolved_credentials["access_token"],
+            image_url=image_urls[0],
+            caption=caption,
+        )
+        wait_for_container(
+            creation_id=creation_id,
+            access_token=resolved_credentials["access_token"],
+        )
     response = publish_media_container(
         account_id=resolved_credentials["account_id"],
         access_token=resolved_credentials["access_token"],
@@ -110,12 +149,16 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
     )
     event = {
         "logged_at": utc_now_iso(),
-        "status": "published",
+        "status": "published_carousel" if is_carousel else "published",
         "shirt_id": post.get("shirt_id"),
+        "shirt_ids": post.get("shirt_ids") or [],
         "title": post.get("title"),
         "caption": caption,
+        "image_urls": image_urls,
+        "is_carousel": is_carousel,
         "account_id": resolved_account_id,
         "creation_id": creation_id,
+        "child_creation_ids": child_creation_ids,
         "instagram_media_id": response.get("id"),
     }
     log_publish_event(event, log_path)
@@ -176,16 +219,60 @@ def publish_comment_reply(text, target_comment_id, dry_run=True, credentials=Non
 
 def build_instagram_caption(post, max_length=MAX_CAPTION_LENGTH):
     caption = strip_urls(post.get("caption") or "").strip()
+    caption = ensure_link_in_bio_before_hashtags(caption)
     if len(caption) <= max_length:
         return caption
 
     headline = (post.get("headline") or post.get("title") or "").strip()
     hashtags = " ".join(post.get("hashtags") or [])
-    compact = "\n\n".join(part for part in [headline, hashtags] if part)
+    compact = "\n\n".join(part for part in [headline, LINK_IN_BIO_CTA, hashtags] if part)
     if len(compact) <= max_length:
         return compact
 
     return trim_text(caption, max_length)
+
+
+def resolve_post_image_urls(post):
+    values = []
+    carousel_items = post.get("carousel_items")
+    if isinstance(carousel_items, list):
+        values.extend(item.get("image_url") for item in carousel_items if isinstance(item, dict))
+    image_urls = post.get("image_urls")
+    if isinstance(image_urls, list):
+        values.extend(image_urls)
+    if post.get("image_url"):
+        values.append(post.get("image_url"))
+
+    resolved = []
+    seen = set()
+    for value in values:
+        text = str(value or "").strip()
+        if text and text not in seen:
+            seen.add(text)
+            resolved.append(text)
+    return resolved
+
+
+def ensure_link_in_bio_before_hashtags(caption):
+    text = str(caption or "").strip()
+    if re.search(r"\blink in bio\b", text, flags=re.IGNORECASE):
+        return text
+    if not text:
+        return LINK_IN_BIO_CTA
+
+    body, hashtag_block = split_trailing_hashtag_block(text)
+    parts = [body, LINK_IN_BIO_CTA, hashtag_block]
+    return "\n\n".join(part for part in parts if part).strip()
+
+
+def split_trailing_hashtag_block(text):
+    body, separator, tail = str(text or "").strip().rpartition("\n\n")
+    if not separator:
+        return str(text or "").strip(), ""
+    tokens = tail.split()
+    if tokens and all(token.startswith("#") for token in tokens):
+        return body.strip(), tail.strip()
+    return str(text or "").strip(), ""
 
 
 def trim_text(text, limit):
@@ -218,6 +305,42 @@ def create_media_container(account_id, access_token, image_url, caption):
     creation_id = response.get("id")
     if not creation_id:
         raise InstagramPublisherError(f"Instagram media creation response missing id: {response}")
+    return creation_id
+
+
+def create_carousel_item_container(account_id, access_token, image_url):
+    response = api_request(
+        f"{GRAPH_BASE_URL}/{account_id}/media",
+        payload={
+            "image_url": image_url,
+            "is_carousel_item": "true",
+        },
+        method="POST",
+        access_token=access_token,
+    )
+    creation_id = response.get("id")
+    if not creation_id:
+        raise InstagramPublisherError(f"Instagram carousel item response missing id: {response}")
+    return creation_id
+
+
+def create_carousel_container(account_id, access_token, child_creation_ids, caption):
+    children = [str(child_id).strip() for child_id in child_creation_ids if str(child_id).strip()]
+    if len(children) < 2:
+        raise InstagramPublisherError("Instagram carousel publishing requires at least two child media containers.")
+    response = api_request(
+        f"{GRAPH_BASE_URL}/{account_id}/media",
+        payload={
+            "media_type": "CAROUSEL",
+            "children": ",".join(children),
+            "caption": caption,
+        },
+        method="POST",
+        access_token=access_token,
+    )
+    creation_id = response.get("id")
+    if not creation_id:
+        raise InstagramPublisherError(f"Instagram carousel container response missing id: {response}")
     return creation_id
 
 
