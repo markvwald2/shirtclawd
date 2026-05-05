@@ -95,9 +95,40 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(plan["planned_posts"][0]["content_goal"], "conversation")
         self.assertEqual(plan["planned_posts"][0]["cta_goal"], "reply")
         self.assertEqual(plan["planned_posts"][1]["content_format"], "pick_your_enemy")
-        self.assertTrue(all(post["active_offer"] == "25% off Coloradans Against shirts" for post in plan["planned_posts"]))
-        self.assertTrue(all(post["offer_ends_on"] == "2026-04-29" for post in plan["planned_posts"]))
-        self.assertTrue(all(post["secondary_offer"] == "20% off all other shirts" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["active_offer"] == "20% off all Spreadshirt orders" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["offer_starts_on"] == "2026-05-15" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["offer_ends_on"] == "2026-05-19" for post in plan["planned_posts"]))
+        self.assertTrue(all(post["secondary_offer"] == "" for post in plan["planned_posts"]))
+
+    def test_build_daily_plan_can_add_coloradans_against_set_post(self):
+        inventory = [
+            {"shirt_id": "1", "title": "Coloradans Against Craft Beer", "status": "available", "theme": "Coloradans Against", "tags": ["colorado", "beer"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "2", "title": "Coloradans Against Hiking", "status": "available", "theme": "Coloradans Against", "tags": ["colorado", "hiking"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "3", "title": "Coloradans Against Triathlons", "status": "available", "theme": "Coloradans Against", "tags": ["colorado", "triathlon"], "is_promotable": True, "promotion_status": "promote"},
+            {"shirt_id": "4", "title": "Coloradans Against Fourteeners", "status": "available", "theme": "Coloradans Against", "tags": ["colorado", "fourteeners"], "is_promotable": True, "promotion_status": "promote"},
+        ]
+
+        plan = build_daily_plan(
+            inventory=inventory,
+            history=[],
+            pricing={"gpt-4o-mini": {"input_per_1m": 0.15, "output_per_1m": 0.6}},
+            ai_model="gpt-4o-mini",
+            plan_date="2026-03-14",
+            platforms=["bluesky", "instagram", "facebook", "threads"],
+            max_estimated_cost=1.0,
+            approval_required=False,
+            campaign="coloradans_against",
+            include_campaign_set_post=True,
+        )
+
+        self.assertEqual(len(plan["planned_posts"]), 8)
+        set_posts = plan["planned_posts"][-4:]
+        self.assertEqual([post["platform"] for post in set_posts], ["bluesky", "instagram", "facebook", "threads"])
+        self.assertTrue(all(post["post_kind"] == "series_set" for post in set_posts))
+        self.assertTrue(all(post["content_format"] == "series_set" for post in set_posts))
+        self.assertTrue(all(post["shirt_ids"] == ["1", "4", "2", "3"] for post in set_posts))
+        self.assertTrue(all(post["collection_size"] == 4 for post in set_posts))
+        self.assertEqual(plan["estimates"]["estimated_total_ai_cost_usd"], 0.00264)
 
 
 if __name__ == "__main__":

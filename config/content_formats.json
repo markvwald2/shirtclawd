@@ -3,13 +3,15 @@
     "max_hashtags": 3,
     "append_hashtags_to_caption": false,
     "headline_prefix": "",
-    "cta_suffix": ""
+    "cta_suffix": "",
+    "cta_separator": " "
   },
   "instagram": {
     "max_hashtags": 5,
     "append_hashtags_to_caption": true,
     "headline_prefix": "",
-    "cta_suffix": ""
+    "cta_suffix": "Link in bio.",
+    "cta_separator": "\n\n"
   },
   "facebook": {
     "max_hashtags": 2,

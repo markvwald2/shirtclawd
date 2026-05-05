@@ -43,6 +43,11 @@ EXTERNAL_ID_KEYS = (
     "post_id",
     "id",
 )
+PUBLISHED_STATUSES = {
+    "published",
+    "published_carousel",
+    "published_multi_photo",
+}
 
 
 def find_latest_daily_plan(output_dir=Path("output"), before_date=None, by_mtime=False):
@@ -106,6 +111,7 @@ def build_follow_up_brief(
     series = first_truthy([entry.get("series") for entry in plan.get("planned_posts", [])]) or campaign
     audience_lane = first_truthy([entry.get("audience_lane") for entry in plan.get("planned_posts", [])]) or "general"
     offer = first_truthy([entry.get("active_offer") for entry in plan.get("planned_posts", [])])
+    offer_starts_on = first_truthy([entry.get("offer_starts_on") for entry in plan.get("planned_posts", [])])
     offer_ends_on = first_truthy([entry.get("offer_ends_on") for entry in plan.get("planned_posts", [])])
     action_lookup = {action.get("action_id"): action for action in queue_actions or []}
 
@@ -123,8 +129,15 @@ def build_follow_up_brief(
         f"- Audience lane: {audience_lane}",
     ]
     if offer:
-        suffix = f" through {offer_ends_on}" if offer_ends_on else ""
-        lines.append(f"- Active offer: {offer}{suffix}")
+        if offer_starts_on and offer_ends_on:
+            suffix = f" from {offer_starts_on} through {offer_ends_on}"
+        elif offer_starts_on:
+            suffix = f" starting {offer_starts_on}"
+        elif offer_ends_on:
+            suffix = f" through {offer_ends_on}"
+        else:
+            suffix = ""
+        lines.append(f"- Offer: {offer}{suffix}")
     lines.extend(
         [
             "- Distribution posture: borrow attention from Colorado conversations before asking for the sale.",
@@ -968,7 +981,7 @@ def load_publish_records(run_date, log_dir=Path("data"), platforms=None):
                 if not line.strip():
                     continue
                 payload = json.loads(line)
-                if payload.get("status") != "published":
+                if payload.get("status") not in PUBLISHED_STATUSES:
                     continue
                 if str(payload.get("logged_at", ""))[:10] != run_date:
                     continue

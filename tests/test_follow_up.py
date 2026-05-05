@@ -37,8 +37,9 @@ class FollowUpTests(unittest.TestCase):
                     "content_goal": "conversation",
                     "content_format": "group_chat_argument",
                     "cta_goal": "reply",
-                    "active_offer": "25% off Coloradans Against shirts",
-                    "offer_ends_on": "2026-04-29",
+                    "active_offer": "20% off all Spreadshirt orders",
+                    "offer_starts_on": "2026-05-15",
+                    "offer_ends_on": "2026-05-19",
                 },
                 {
                     "slot": 2,
@@ -717,6 +718,7 @@ class FollowUpTests(unittest.TestCase):
                     [
                         json.dumps({"logged_at": "2026-04-25T12:00:00+00:00", "status": "published", "shirt_id": "old"}),
                         json.dumps({"logged_at": "2026-04-26T12:00:00+00:00", "status": "published", "shirt_id": "new"}),
+                        json.dumps({"logged_at": "2026-04-26T12:30:00+00:00", "status": "published_carousel", "shirt_id": "set"}),
                         json.dumps({"logged_at": "2026-04-26T13:00:00+00:00", "status": "draft", "shirt_id": "draft"}),
                     ]
                 )
@@ -725,8 +727,7 @@ class FollowUpTests(unittest.TestCase):
 
             records = load_publish_records("2026-04-26", log_dir=log_dir, platforms=["bluesky"])
 
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0]["shirt_id"], "new")
+        self.assertEqual([record["shirt_id"] for record in records], ["new", "set"])
         self.assertEqual(records[0]["platform"], "bluesky")
 
     def test_write_follow_up_brief_writes_markdown_file(self):

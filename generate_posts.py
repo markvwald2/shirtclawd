@@ -127,10 +127,7 @@ def generate_from_plan(args, inventory, theme_formats, content_formats, pricing)
     for platform, entries in grouped_entries.items():
         shirts = []
         for entry in entries:
-            shirt_id = entry.get("shirt_id")
-            if shirt_id not in inventory_by_id:
-                raise SystemExit(f"Planned shirt_id {shirt_id} was not found in the current inventory.")
-            shirts.append(inventory_by_id[shirt_id])
+            shirts.append(resolve_plan_entry_shirt(entry, inventory_by_id))
 
         generated = generate_for_platform(
             shirts=shirts,
@@ -156,6 +153,48 @@ def generate_from_plan(args, inventory, theme_formats, content_formats, pricing)
     if history_entries:
         append_history(history_entries, args.history)
     print(f"Generated {total_posts} total posts from plan {args.plan}")
+
+
+def resolve_plan_entry_shirt(entry, inventory_by_id):
+    shirt_ids = normalize_shirt_ids(entry.get("shirt_ids"))
+    if shirt_ids:
+        missing = [shirt_id for shirt_id in shirt_ids if shirt_id not in inventory_by_id]
+        if missing:
+            raise SystemExit(f"Planned collection shirt_id(s) missing from inventory: {', '.join(missing)}")
+        shirts = [inventory_by_id[shirt_id] for shirt_id in shirt_ids]
+        entry["_resolved_collection_items"] = shirts
+        return build_collection_shirt(entry, shirts)
+
+    shirt_id = entry.get("shirt_id")
+    if shirt_id not in inventory_by_id:
+        raise SystemExit(f"Planned shirt_id {shirt_id} was not found in the current inventory.")
+    return inventory_by_id[shirt_id]
+
+
+def build_collection_shirt(entry, shirts):
+    first = shirts[0]
+    title = entry.get("collection_title") or entry.get("title") or "Shirt line"
+    titles = [shirt.get("title", "") for shirt in shirts]
+    tags = []
+    for shirt in shirts:
+        tags.extend(shirt.get("tags", []))
+    return {
+        "shirt_id": entry.get("shirt_id") or "series_set",
+        "title": title,
+        "url": first["url"],
+        "image_url": first["image_url"],
+        "theme": entry.get("theme") or first.get("theme", ""),
+        "tags": tags[:8],
+        "description": f"Multi-image collection post featuring: {', '.join(titles)}.",
+        "reference_summary": (
+            f"A carousel/set post for the {title} collection. "
+            f"Included shirts: {', '.join(titles)}."
+        ),
+        "target_audience": first.get("target_audience", []),
+        "tone": first.get("tone", ""),
+        "tone_notes": first.get("tone_notes", ""),
+        "notes": "Write about the shirt line as a set, not only the first image.",
+    }
 
 
 def generate_for_platform(
@@ -202,6 +241,7 @@ def generate_for_platform(
     if plan_entries:
         for post, entry in zip(posts, plan_entries):
             post.update(plan_metadata(entry, plan_date))
+            apply_collection_media_metadata(post, entry, inventory_by_id=None)
 
     now = datetime.now(timezone.utc)
     run_date = plan_date or now.date().isoformat()
@@ -214,13 +254,9 @@ def generate_for_platform(
     )
 
     history_entries = [
-        {
-            "shirt_id": post["shirt_id"],
-            "title": post["title"],
-            "generated_at": now.isoformat(),
-            "output_file": str(destination),
-        }
+        entry
         for post in posts
+        for entry in build_history_entries_for_post(post, now, destination)
     ]
 
     for event in usage_events:
@@ -247,6 +283,7 @@ def load_daily_plan(path):
 def plan_metadata(entry, plan_date):
     return {
         "plan_slot": entry.get("slot"),
+        "post_kind": entry.get("post_kind"),
         "campaign": entry.get("campaign"),
         "series": entry.get("series"),
         "audience_lane": entry.get("audience_lane"),
@@ -256,13 +293,94 @@ def plan_metadata(entry, plan_date):
         "active_offer": entry.get("active_offer"),
         "discount_percent": entry.get("discount_percent"),
         "offer_scope": entry.get("offer_scope"),
+        "offer_starts_on": entry.get("offer_starts_on"),
         "offer_ends_on": entry.get("offer_ends_on"),
         "secondary_offer": entry.get("secondary_offer"),
+        "shirt_ids": normalize_shirt_ids(entry.get("shirt_ids")),
+        "collection_title": entry.get("collection_title"),
+        "collection_size": entry.get("collection_size"),
+        "collection_items": entry.get("collection_items"),
         "approval_required": bool(entry.get("approval_required")),
         "approval_status": entry.get("approval_status", "pending"),
         "planned_platform": entry.get("platform"),
         "plan_date": plan_date,
     }
+
+
+def apply_collection_media_metadata(post, entry, inventory_by_id=None):
+    shirt_ids = normalize_shirt_ids(entry.get("shirt_ids"))
+    if not shirt_ids:
+        return
+
+    source_items = entry.get("_resolved_collection_items") or []
+    items = []
+    for item in source_items:
+        items.append(collection_item_payload(item))
+    if not items and inventory_by_id:
+        items = [
+            collection_item_payload(inventory_by_id[shirt_id])
+            for shirt_id in shirt_ids
+            if shirt_id in inventory_by_id
+        ]
+
+    if items:
+        post["shirt_ids"] = [item["shirt_id"] for item in items]
+        post["titles"] = [item["title"] for item in items]
+        post["urls"] = [item["url"] for item in items]
+        post["image_urls"] = [item["image_url"] for item in items]
+        post["carousel_items"] = items
+        post["image_url"] = items[0]["image_url"]
+        post["url"] = items[0]["url"]
+    post["post_type"] = entry.get("post_kind") or post.get("post_type")
+
+
+def collection_item_payload(shirt):
+    title = shirt.get("title", "")
+    return {
+        "shirt_id": shirt.get("shirt_id", ""),
+        "title": title,
+        "url": shirt.get("url", ""),
+        "image_url": shirt.get("image_url", ""),
+        "alt_text": f"Artwork for the {title} shirt.",
+    }
+
+
+def build_history_entries_for_post(post, generated_at, destination):
+    generated = generated_at.isoformat()
+    output_file = str(destination)
+    shirt_ids = normalize_shirt_ids(post.get("shirt_ids"))
+    if not shirt_ids:
+        return [
+            {
+                "shirt_id": post["shirt_id"],
+                "title": post["title"],
+                "generated_at": generated,
+                "output_file": output_file,
+            }
+        ]
+
+    titles = post.get("titles") or []
+    return [
+        {
+            "shirt_id": shirt_id,
+            "title": titles[index] if index < len(titles) else post.get("title", ""),
+            "generated_at": generated,
+            "output_file": output_file,
+            "post_group_id": post.get("shirt_id"),
+        }
+        for index, shirt_id in enumerate(shirt_ids)
+    ]
+
+
+def normalize_shirt_ids(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, tuple):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value or "").strip()
+    if not text:
+        return []
+    return [part.strip() for part in text.split(",") if part.strip()]
 
 
 def build_posts_for_mode(

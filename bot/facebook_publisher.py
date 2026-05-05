@@ -54,14 +54,19 @@ def select_post(posts, index=None, shirt_id=None):
 def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_LOG_PATH, page_id=None):
     message = build_facebook_message(post)
     link = build_facebook_link(post)
+    image_urls = resolve_post_image_urls(post)
+    is_multi_image = len(image_urls) > 1
     resolved_page_id = page_id or (credentials or {}).get("page_id") or DEFAULT_FACEBOOK_PAGE_ID
     result = {
         "mode": "dry_run" if dry_run else "publish",
         "shirt_id": post.get("shirt_id"),
+        "shirt_ids": post.get("shirt_ids") or [],
         "title": post.get("title"),
         "message": message,
-        "link": link,
-        "image_url": post.get("image_url"),
+        "link": "" if is_multi_image else link,
+        "image_url": image_urls[0] if image_urls else post.get("image_url"),
+        "image_urls": image_urls,
+        "is_multi_image": is_multi_image,
         "platform": "facebook",
         "page_id": resolved_page_id,
     }
@@ -71,9 +76,12 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
             "logged_at": utc_now_iso(),
             "status": "dry_run",
             "shirt_id": post.get("shirt_id"),
+            "shirt_ids": post.get("shirt_ids") or [],
             "title": post.get("title"),
             "message": message,
-            "link": link,
+            "link": "" if is_multi_image else link,
+            "image_urls": image_urls,
+            "is_multi_image": is_multi_image,
             "page_id": resolved_page_id,
         }
         log_publish_event(event, log_path)
@@ -84,19 +92,40 @@ def publish_post(post, dry_run=True, credentials=None, log_path=DEFAULT_PUBLISH_
     if page_id:
         resolved_credentials["page_id"] = page_id
 
-    response = create_page_post(
-        page_id=resolved_credentials["page_id"],
-        access_token=resolved_credentials["access_token"],
-        message=message,
-        link=link,
-    )
+    if is_multi_image:
+        photo_ids = [
+            create_unpublished_photo(
+                page_id=resolved_credentials["page_id"],
+                access_token=resolved_credentials["access_token"],
+                image_url=image_url,
+            )
+            for image_url in image_urls
+        ]
+        response = create_multi_photo_post(
+            page_id=resolved_credentials["page_id"],
+            access_token=resolved_credentials["access_token"],
+            message=message,
+            photo_ids=photo_ids,
+        )
+    else:
+        photo_ids = []
+        response = create_page_post(
+            page_id=resolved_credentials["page_id"],
+            access_token=resolved_credentials["access_token"],
+            message=message,
+            link=link,
+        )
     event = {
         "logged_at": utc_now_iso(),
-        "status": "published",
+        "status": "published_multi_photo" if is_multi_image else "published",
         "shirt_id": post.get("shirt_id"),
+        "shirt_ids": post.get("shirt_ids") or [],
         "title": post.get("title"),
         "message": message,
-        "link": link,
+        "link": "" if is_multi_image else link,
+        "image_urls": image_urls,
+        "is_multi_image": is_multi_image,
+        "facebook_photo_ids": photo_ids,
         "page_id": resolved_page_id,
         "facebook_post_id": response.get("post_id") or response.get("id"),
     }
@@ -188,6 +217,27 @@ def build_facebook_link(post):
     return url
 
 
+def resolve_post_image_urls(post):
+    values = []
+    carousel_items = post.get("carousel_items")
+    if isinstance(carousel_items, list):
+        values.extend(item.get("image_url") for item in carousel_items if isinstance(item, dict))
+    image_urls = post.get("image_urls")
+    if isinstance(image_urls, list):
+        values.extend(image_urls)
+    if post.get("image_url"):
+        values.append(post.get("image_url"))
+
+    resolved = []
+    seen = set()
+    for value in values:
+        text = str(value or "").strip()
+        if text and text not in seen:
+            seen.add(text)
+            resolved.append(text)
+    return resolved
+
+
 def slugify_title(title):
     normalized = re.sub(r"[^a-z0-9]+", "-", str(title or "").lower())
     return normalized.strip("-")
@@ -207,6 +257,42 @@ def create_page_post(page_id, access_token, message, link=""):
     )
     if not response.get("id"):
         raise FacebookPublisherError(f"Unexpected Facebook publish response: {response}")
+    return response
+
+
+def create_unpublished_photo(page_id, access_token, image_url):
+    response = api_request(
+        f"{GRAPH_BASE_URL}/{page_id}/photos",
+        payload={
+            "url": image_url,
+            "published": "false",
+        },
+        method="POST",
+        access_token=access_token,
+    )
+    photo_id = response.get("id")
+    if not photo_id:
+        raise FacebookPublisherError(f"Unexpected Facebook photo upload response: {response}")
+    return photo_id
+
+
+def create_multi_photo_post(page_id, access_token, message, photo_ids):
+    ids = [str(photo_id).strip() for photo_id in photo_ids if str(photo_id).strip()]
+    if len(ids) < 2:
+        raise FacebookPublisherError("Facebook multi-photo publishing requires at least two uploaded photo IDs.")
+
+    payload = {"message": message}
+    for index, photo_id in enumerate(ids):
+        payload[f"attached_media[{index}]"] = json.dumps({"media_fbid": photo_id})
+
+    response = api_request(
+        f"{GRAPH_BASE_URL}/{page_id}/feed",
+        payload=payload,
+        method="POST",
+        access_token=access_token,
+    )
+    if not response.get("id"):
+        raise FacebookPublisherError(f"Unexpected Facebook multi-photo publish response: {response}")
     return response
 
 

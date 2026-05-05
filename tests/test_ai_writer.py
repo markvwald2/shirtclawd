@@ -58,9 +58,9 @@ class AIWriterTests(unittest.TestCase):
                     "content_format": "group_chat_argument",
                     "cta_goal": "reply",
                     "campaign_prompt_guidance": "Invite a specific reply.",
-                    "active_offer": "25% off Coloradans Against shirts",
-                    "offer_ends_on": "2026-04-29",
-                    "secondary_offer": "20% off all other shirts",
+                    "active_offer": "20% off all Spreadshirt orders",
+                    "offer_starts_on": "2026-05-15",
+                    "offer_ends_on": "2026-05-19",
                 },
             )
         )
@@ -69,8 +69,7 @@ class AIWriterTests(unittest.TestCase):
         self.assertEqual(prompt["post_context"]["content_goal"], "conversation")
         self.assertIn("top-of-funnel conversation content", " ".join(prompt["requirements"]))
         self.assertIn("specific reply prompt", " ".join(prompt["requirements"]))
-        self.assertIn("25% off Coloradans Against shirts through 2026-04-29", " ".join(prompt["requirements"]))
-        self.assertIn("20% off all other shirts", " ".join(prompt["requirements"]))
+        self.assertIn("20% off all Spreadshirt orders from 2026-05-15 through 2026-05-19", " ".join(prompt["requirements"]))
         self.assertIn("do not force it", " ".join(prompt["requirements"]))
 
     def test_build_user_prompt_asks_direct_offer_to_mention_active_offer(self):
@@ -89,15 +88,50 @@ class AIWriterTests(unittest.TestCase):
                     "campaign": "coloradans_against",
                     "content_goal": "direct_offer",
                     "cta_goal": "buy",
-                    "active_offer": "25% off Coloradans Against shirts",
-                    "offer_ends_on": "2026-04-29",
+                    "active_offer": "20% off all Spreadshirt orders",
+                    "offer_starts_on": "2026-05-15",
+                    "offer_ends_on": "2026-05-19",
                 },
             )
         )
 
         requirements = " ".join(prompt["requirements"])
-        self.assertIn("25% off Coloradans Against shirts through 2026-04-29", requirements)
+        self.assertIn("20% off all Spreadshirt orders from 2026-05-15 through 2026-05-19", requirements)
         self.assertIn("Mention it clearly", requirements)
+        self.assertIn("Do not imply the sale is live outside that window", requirements)
+
+    def test_build_user_prompt_guides_series_set_posts(self):
+        prompt = json.loads(
+            build_user_prompt(
+                {
+                    "shirt_id": "coloradans_against_set",
+                    "title": "Coloradans Against Shirt Line",
+                    "theme": "Coloradans Against",
+                    "tags": ["colorado"],
+                    "url": "https://example.com",
+                    "image_url": "https://example.com/image.jpg",
+                },
+                "instagram",
+                post_context={
+                    "campaign": "coloradans_against",
+                    "content_goal": "product_connected",
+                    "content_format": "series_set",
+                    "cta_goal": "buy",
+                    "collection_title": "Coloradans Against Shirt Line",
+                    "collection_size": 4,
+                    "collection_items": [
+                        {"shirt_id": "1", "title": "Coloradans Against Craft Beer"},
+                        {"shirt_id": "2", "title": "Coloradans Against Hiking"},
+                    ],
+                },
+            )
+        )
+
+        requirements = " ".join(prompt["requirements"])
+        self.assertIn("multi-image set/carousel post", requirements)
+        self.assertIn("whole line of shirts", requirements)
+        self.assertEqual(prompt["post_context"]["collection_size"], "4")
+        self.assertEqual(len(prompt["post_context"]["collection_items"]), 2)
 
     def test_parse_response_uses_output_text_json(self):
         raw_response = json.dumps(

@@ -92,7 +92,7 @@ class PostGeneratorTests(unittest.TestCase):
         )
 
         self.assertNotIn("https://example.com", post["caption"])
-        self.assertNotIn("link in bio", post["caption"].lower())
+        self.assertIn("\n\nLink in bio.\n\n#religion", post["caption"])
 
     def test_build_ai_post_does_not_duplicate_link_in_bio_cta(self):
         shirt = {
@@ -152,6 +152,7 @@ class PostGeneratorTests(unittest.TestCase):
         self.assertEqual(post["caption"].count("#BreakingBad"), 1)
         self.assertEqual(post["caption"].count("#FartJokes"), 1)
         self.assertEqual(post["caption"].count("#TVParody"), 1)
+        self.assertIn("\n\nLink in bio.\n\n#BreakingBad", post["caption"])
         self.assertTrue(post["caption"].endswith("#BreakingBad #FartJokes #TVParody"))
         self.assertNotIn("#BreakingBad #FartJokes #TVParody\n\n#BreakingBad", post["caption"])
 

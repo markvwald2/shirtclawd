@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--file", required=True, help="Path to a generated posts JSON file.")
     parser.add_argument("--index", type=int, default=None, help="Zero-based post index in the file.")
     parser.add_argument("--shirt-id", default=None, help="Select a post by shirt_id instead of index.")
+    parser.add_argument("--all", action="store_true", help="Publish every post in the file in order.")
     parser.add_argument("--handle", default=DEFAULT_BLUESKY_HANDLE)
     parser.add_argument("--force", action="store_true", help="Allow live publishing without prior approval.")
     parser.add_argument(
@@ -44,30 +45,36 @@ def main():
 
     try:
         posts = load_posts(args.file)
-        post = select_post(posts, index=args.index, shirt_id=args.shirt_id)
+        selected_posts = posts if args.all else [select_post(posts, index=args.index, shirt_id=args.shirt_id)]
 
-        if args.publish and not args.force and not is_post_approved(
-            post,
-            args.file,
-            args.handle,
-            path=DEFAULT_BLUESKY_APPROVAL_QUEUE_PATH,
-            platform="bluesky",
-        ):
-            raise BlueskyPublisherError(
-                "Post is not approved for live publishing. Run approve_post.py --platform bluesky first or use --force."
-            )
+        if args.publish and not args.force:
+            for post in selected_posts:
+                if not is_post_approved(
+                    post,
+                    args.file,
+                    args.handle,
+                    path=DEFAULT_BLUESKY_APPROVAL_QUEUE_PATH,
+                    platform="bluesky",
+                ):
+                    raise BlueskyPublisherError(
+                        "Post is not approved for live publishing. Run approve_post.py --platform bluesky first or use --force."
+                    )
 
-        result = publish_post(post, dry_run=not args.publish, handle=args.handle)
+        results = [publish_post(post, dry_run=not args.publish, handle=args.handle) for post in selected_posts]
     except BlueskyPublisherError as exc:
         print(exc)
         raise SystemExit(1) from exc
 
     if args.publish:
-        print(f"Published to Bluesky as {args.handle}: uri={result.get('uri')}")
+        for result in results:
+            label = "multi-image post" if result.get("is_multi_image") else "post"
+            print(f"Published Bluesky {label} as {args.handle}: uri={result.get('uri')}")
     else:
-        print(f"Dry run only for {args.handle}. Generated Bluesky post preview:")
-        print()
-        print(result["text"])
+        for index, result in enumerate(results):
+            print(f"Dry run only for {args.handle}. Generated Bluesky post preview {index}:")
+            print()
+            print(result["text"])
+            print()
 
 
 if __name__ == "__main__":

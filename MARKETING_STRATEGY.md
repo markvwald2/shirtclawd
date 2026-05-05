@@ -141,6 +141,7 @@ Best use:
 - recurring `Coloradans Against` visuals
 - polls in captions and stories
 - carousels with "choose your most overrated Colorado thing"
+- line/set posts that show all four `Coloradans Against` shirt artworks together
 
 ### X
 
@@ -204,7 +205,9 @@ python plan_day.py \
 
 The generated plan should include `campaign`, `series`, `audience_lane`, `content_goal`, `content_format`, and `cta_goal` fields so each post has a job beyond "show this shirt."
 
-Current offer context: ShirtClawd has 25% off `Coloradans Against` shirts and 20% off all other shirts through April 29, 2026. Use this in direct-offer posts, but keep conversation posts focused on local reactions first.
+Sale context: ShirtClawd has 20% off all Spreadshirt orders from May 15 through May 19, 2026. Use this in direct-offer posts, but keep conversation posts focused on local reactions first.
+
+Optional line posts: add `--include-campaign-set-post` to the daily plan, or set `CAMPAIGN_SET_POST=1` for `scripts/run_daily_workflow.sh`, to publish one extra multi-image set post on each selected platform for the four-shirt `Coloradans Against` lineup. Use `--campaign-set-platform instagram` or `CAMPAIGN_SET_PLATFORM=instagram` to narrow it to one platform.
 
 ### Week 2: Publish and participate
 

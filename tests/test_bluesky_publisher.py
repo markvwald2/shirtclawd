@@ -16,6 +16,7 @@ from bot.bluesky_publisher import (
     parse_at_uri,
     publish_post,
     publish_reply,
+    resolve_post_images,
     select_post,
 )
 
@@ -112,6 +113,20 @@ class BlueskyPublisherTests(unittest.TestCase):
             payload = json.loads(lines[0])
             self.assertEqual(payload["status"], "dry_run")
 
+    def test_resolve_post_images_reads_carousel_items(self):
+        images = resolve_post_images(
+            {
+                "image_url": "https://example.com/one.jpg",
+                "carousel_items": [
+                    {"image_url": "https://example.com/one.jpg", "alt_text": "One"},
+                    {"image_url": "https://example.com/two.jpg", "alt_text": "Two"},
+                ],
+            }
+        )
+
+        self.assertEqual([image["image_url"] for image in images], ["https://example.com/one.jpg", "https://example.com/two.jpg"])
+        self.assertEqual(images[1]["alt"], "Two")
+
     def test_parse_at_uri(self):
         params = parse_at_uri("at://did:plc:abc/app.bsky.feed.post/3kabc")
 
@@ -153,6 +168,20 @@ class BlueskyPublisherTests(unittest.TestCase):
         payload = json_request.call_args.args[1]
         self.assertEqual(response["uri"], "at://did/reply")
         self.assertEqual(payload["record"]["reply"], reply)
+
+    @patch("bot.bluesky_publisher.json_request")
+    def test_create_post_can_include_multiple_image_embeds(self, json_request):
+        json_request.return_value = {"uri": "at://did/post", "cid": "post-cid"}
+        image_embeds = [
+            {"alt": "One", "image": {"$type": "blob", "ref": {"$link": "one"}}},
+            {"alt": "Two", "image": {"$type": "blob", "ref": {"$link": "two"}}},
+        ]
+
+        create_post("Post text", "did:plc:me", "jwt", image_embeds=image_embeds)
+
+        payload = json_request.call_args.args[1]
+        self.assertEqual(payload["record"]["embed"]["$type"], "app.bsky.embed.images")
+        self.assertEqual(payload["record"]["embed"]["images"], image_embeds)
 
     def test_publish_reply_dry_run_logs_event_without_credentials(self):
         with tempfile.TemporaryDirectory() as tmpdir:

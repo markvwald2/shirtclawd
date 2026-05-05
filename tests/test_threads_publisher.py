@@ -4,7 +4,17 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from bot.threads_publisher import build_threads_status, create_container, load_posts, publish_post, publish_reply, select_post
+from bot.threads_publisher import (
+    build_threads_status,
+    create_carousel_container,
+    create_carousel_item_container,
+    create_container,
+    load_posts,
+    publish_post,
+    publish_reply,
+    resolve_post_media_items,
+    select_post,
+)
 
 
 class ThreadsPublisherTests(unittest.TestCase):
@@ -47,6 +57,20 @@ class ThreadsPublisherTests(unittest.TestCase):
             path.write_text(json.dumps([{"shirt_id": "1"}]))
             posts = load_posts(path)
             self.assertEqual(len(posts), 1)
+
+    def test_resolve_post_media_items_reads_carousel_items(self):
+        items = resolve_post_media_items(
+            {
+                "image_url": "https://example.com/one.jpg",
+                "carousel_items": [
+                    {"image_url": "https://example.com/one.jpg", "alt_text": "One"},
+                    {"image_url": "https://example.com/two.jpg", "alt_text": "Two"},
+                ],
+            }
+        )
+
+        self.assertEqual([item["image_url"] for item in items], ["https://example.com/one.jpg", "https://example.com/two.jpg"])
+        self.assertEqual(items[1]["alt_text"], "Two")
 
     @patch("bot.threads_publisher.load_inventory")
     @patch("bot.threads_publisher.api_request")
@@ -112,6 +136,53 @@ class ThreadsPublisherTests(unittest.TestCase):
 
         self.assertEqual(api_request.call_args.kwargs["payload"]["reply_to_id"], "thread123")
         self.assertEqual(api_request.call_args.kwargs["payload"]["media_type"], "TEXT")
+
+    @patch("bot.threads_publisher.api_request")
+    def test_create_carousel_item_container_marks_item(self, api_request):
+        api_request.return_value = {"id": "child1"}
+
+        creation_id = create_carousel_item_container("user123", "token", "https://example.com/one.jpg", alt_text="One")
+
+        self.assertEqual(creation_id, "child1")
+        payload = api_request.call_args.kwargs["payload"]
+        self.assertEqual(payload["media_type"], "IMAGE")
+        self.assertEqual(payload["is_carousel_item"], "true")
+        self.assertEqual(payload["alt_text"], "One")
+
+    @patch("bot.threads_publisher.api_request")
+    def test_create_carousel_container_joins_children(self, api_request):
+        api_request.return_value = {"id": "carousel1"}
+
+        creation_id = create_carousel_container("user123", "token", "Caption", ["child1", "child2"])
+
+        self.assertEqual(creation_id, "carousel1")
+        payload = api_request.call_args.kwargs["payload"]
+        self.assertEqual(payload["media_type"], "CAROUSEL")
+        self.assertEqual(payload["children"], "child1,child2")
+        self.assertEqual(payload["text"], "Caption")
+
+    @patch("bot.threads_publisher.api_request")
+    def test_publish_post_uses_carousel_flow_for_multiple_images(self, api_request):
+        api_request.side_effect = [{"id": "child1"}, {"id": "child2"}, {"id": "carousel1"}, {"id": "thread456"}]
+        post = {
+            "shirt_id": "coloradans_against_set",
+            "shirt_ids": ["1", "2"],
+            "title": "Coloradans Against Shirt Line",
+            "caption": "Pick your complaint.",
+            "image_urls": ["https://example.com/one.jpg", "https://example.com/two.jpg"],
+        }
+
+        result = publish_post(
+            post,
+            dry_run=False,
+            credentials={"access_token": "token", "user_id": "user123"},
+            username="@3rdstringshirts",
+        )
+
+        self.assertTrue(result["is_carousel"])
+        self.assertEqual(result["child_creation_ids"], ["child1", "child2"])
+        self.assertEqual(result["threads_media_id"], "thread456")
+        self.assertEqual(api_request.call_args_list[2].kwargs["payload"]["media_type"], "CAROUSEL")
 
     @patch("bot.threads_publisher.api_request")
     def test_publish_reply_creates_and_publishes_reply_container(self, api_request):
